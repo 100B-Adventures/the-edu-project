@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useMemo } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 
 import { useCurrentMember } from '@/providers/session/hooks/use-current-member';
 
@@ -15,10 +15,34 @@ interface SessionProviderProps {
   initialHasSession: boolean;
 }
 
+type ResolveSessionStatusParams = {
+  initialHasSession: boolean;
+  hydrated: boolean;
+  isPending: boolean;
+  isError: boolean;
+  hasMember: boolean;
+};
+
+export const resolveSessionStatus = ({
+  initialHasSession,
+  hydrated,
+  isPending,
+  isError,
+  hasMember,
+}: ResolveSessionStatusParams): SessionStatus => {
+  if (initialHasSession && !hydrated) return 'loading';
+  if (!initialHasSession && !hasMember) return 'unauthenticated';
+  if (isPending) return 'loading';
+  if (isError) return 'error';
+  if (hasMember) return 'authenticated';
+  return 'unauthenticated';
+};
+
 export const SessionProvider = ({
   children,
   initialHasSession,
 }: SessionProviderProps) => {
+  const [hydrated, setHydrated] = useState(false);
   const {
     data: member,
     isPending,
@@ -26,14 +50,20 @@ export const SessionProvider = ({
     refetch,
   } = useCurrentMember(initialHasSession);
 
+  useEffect(() => setHydrated(true), []);
+
   // 쿼리상태 변환
-  const status: SessionStatus = useMemo(() => {
-    if (!initialHasSession && !member) return 'unauthenticated';
-    if (isPending) return 'loading';
-    if (isError) return 'error';
-    if (member) return 'authenticated';
-    return 'unauthenticated';
-  }, [initialHasSession, isPending, isError, member]);
+  const status: SessionStatus = useMemo(
+    () =>
+      resolveSessionStatus({
+        initialHasSession,
+        hydrated,
+        isPending,
+        isError,
+        hasMember: Boolean(member),
+      }),
+    [initialHasSession, hydrated, isPending, isError, member]
+  );
 
   // Context Value
   const value: SessionContextValue = useMemo(

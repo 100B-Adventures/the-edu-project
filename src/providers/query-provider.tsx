@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 
 import dynamic from 'next/dynamic';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { isServer, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const ReactQueryDevtools =
   process.env.NODE_ENV === 'development' &&
@@ -20,9 +20,19 @@ interface QueryProviderProps {
   children: ReactNode;
 }
 
-const queryClient = new QueryClient();
+export const makeQueryClient = () => new QueryClient();
+
+let browserQueryClient: QueryClient | undefined;
+
+export const getQueryClient = (runningOnServer = isServer) => {
+  if (runningOnServer) return makeQueryClient();
+  if (!browserQueryClient) browserQueryClient = makeQueryClient();
+  return browserQueryClient;
+};
 
 export const QueryProvider = ({ children }: QueryProviderProps) => {
+  const queryClient = getQueryClient();
+
   return (
     <QueryClientProvider client={queryClient}>
       {children}
