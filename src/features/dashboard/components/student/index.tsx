@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import Link from 'next/link';
 
+import { isD034HiddenForRole } from '@/features/dashboard/model/d034-visibility';
 import { useAssignedExamsQuery } from '@/features/exam/hooks/use-exam-query';
 import { StudentTeacherInviteCard } from '@/features/teacher-invite/components/student-teacher-invite-card';
 import { UnitNoteEntryCard } from '@/features/unit-note/components/unit-note-entry-card';
@@ -66,7 +67,10 @@ const DashboardStudent = () => {
           <h2 className="text-gray-12 text-lg font-extrabold">지금 내 상태</h2>
           <p className="text-gray-9 text-xs">어디에 있고 무엇을 정리해 뒀나</p>
         </div>
-        <ExamHallCard />
+        {!isD034HiddenForRole(
+          'ROLE_STUDENT',
+          'student.dashboard.exam-hall-card'
+        ) && <ExamHallCard />}
         <UnitNoteEntryCard />
         <div className="border-gray-4 mt-1 flex items-baseline gap-2 border-b-2 pb-2">
           <h2 className="text-gray-12 text-lg font-extrabold">오늘 할 것</h2>

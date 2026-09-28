@@ -7,6 +7,7 @@ import { useStudentGrowthQuery } from '@/features/dashboard/hooks/use-growth-que
 import { useParentDashboardReportQuery } from '@/features/dashboard/hooks/use-parent-dashboard-query';
 import { useTeacherDashboardStudyRoomListQuery } from '@/features/dashboard/hooks/use-teacher-dashboard-query';
 import { useWrongAnswersQuery } from '@/features/dashboard/hooks/use-wrong-answer-query';
+import { isD034HiddenForRole } from '@/features/dashboard/model/d034-visibility';
 import { useMyPointWalletQuery } from '@/features/point/hooks/use-point';
 import { cn } from '@/shared/lib';
 import { useMemberStore } from '@/store';
@@ -67,7 +68,12 @@ const StudentSummaryChips = ({ memberName }: { memberName: string }) => {
     ['내 오답', `${wrongAnswerCount}개`, false, false],
     ['연속', `${streakDays}일`, true, false],
     [null, `Lv.${level}`, true, false],
-    ['포인트', `${pointBalance.toLocaleString('ko-KR')}P`, false, true],
+    [
+      '포인트',
+      `${pointBalance.toLocaleString('ko-KR')}P`,
+      false,
+      isD034HiddenForRole('ROLE_STUDENT', 'student.header.points'),
+    ],
   ] as const;
 
   return (

@@ -4,6 +4,7 @@ import type { WrongAnswerItem } from '@/entities/wrong-answer';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { useStudentDashboardStudyRoomListQuery } from '@/features/dashboard/hooks/use-student-dashboard-query';
 import { useWrongAnswersQuery } from '@/features/dashboard/hooks/use-wrong-answer-query';
+import { isD034HiddenForRole } from '@/features/dashboard/model/d034-visibility';
 import { useAssignedExamsQuery } from '@/features/exam/hooks/use-exam-query';
 import { ListIcon } from '@/shared/components/icons';
 import { Sidebar } from '@/shared/components/sidebar';
@@ -164,17 +165,19 @@ export const DashboardSidebar = () => {
             <StudentSidebarCounts kind="wrong" />
           </Sidebar.Item>
 
-          <Sidebar.Item
-            href={PRIVATE.DASHBOARD.EXAM_HALL}
-            matchPath={PRIVATE.DASHBOARD.EXAM_HALL}
-          >
-            <Diamond
-              size={20}
-              className="shrink-0"
-            />
-            <Sidebar.Text>응시장</Sidebar.Text>
-            <StudentSidebarCounts kind="exam" />
-          </Sidebar.Item>
+          {!isD034HiddenForRole(role, 'student.sidebar.exam-hall') && (
+            <Sidebar.Item
+              href={PRIVATE.DASHBOARD.EXAM_HALL}
+              matchPath={PRIVATE.DASHBOARD.EXAM_HALL}
+            >
+              <Diamond
+                size={20}
+                className="shrink-0"
+              />
+              <Sidebar.Text>응시장</Sidebar.Text>
+              <StudentSidebarCounts kind="exam" />
+            </Sidebar.Item>
+          )}
 
           {studentRooms.isSuccess && !primaryRoom && (
             <Sidebar.Item
@@ -189,27 +192,31 @@ export const DashboardSidebar = () => {
             </Sidebar.Item>
           )}
 
-          <Sidebar.Item
-            href={PRIVATE.FRIENDS.INDEX}
-            matchPath={PRIVATE.FRIENDS.INDEX}
-          >
-            <Handshake
-              size={20}
-              className="shrink-0"
-            />
-            <Sidebar.Text>친구</Sidebar.Text>
-          </Sidebar.Item>
+          {!isD034HiddenForRole(role, 'student.sidebar.friends') && (
+            <Sidebar.Item
+              href={PRIVATE.FRIENDS.INDEX}
+              matchPath={PRIVATE.FRIENDS.INDEX}
+            >
+              <Handshake
+                size={20}
+                className="shrink-0"
+              />
+              <Sidebar.Text>친구</Sidebar.Text>
+            </Sidebar.Item>
+          )}
 
-          <Sidebar.Item
-            href={PRIVATE.POINTS.INDEX}
-            matchPath={PRIVATE.POINTS.INDEX}
-          >
-            <Diamond
-              size={20}
-              className="shrink-0"
-            />
-            <Sidebar.Text>포인트</Sidebar.Text>
-          </Sidebar.Item>
+          {!isD034HiddenForRole(role, 'student.sidebar.points') && (
+            <Sidebar.Item
+              href={PRIVATE.POINTS.INDEX}
+              matchPath={PRIVATE.POINTS.INDEX}
+            >
+              <Diamond
+                size={20}
+                className="shrink-0"
+              />
+              <Sidebar.Text>포인트</Sidebar.Text>
+            </Sidebar.Item>
+          )}
         </>
       )}
 
@@ -249,23 +256,24 @@ export const DashboardSidebar = () => {
         </Sidebar.Item>
       )}
 
-      {role === 'ROLE_STUDENT' && (
-        <>
-          <div className="text-gray-8 text-ui-compact tablet:block hidden px-2 pt-4 pb-1 font-extrabold">
-            오픈챌린지에서 열립니다
-          </div>
-          <Sidebar.Item
-            href={PRIVATE.TREE.INDEX}
-            matchPath={PRIVATE.TREE.INDEX}
-          >
-            <Sprout
-              size={20}
-              className="shrink-0"
-            />
-            <Sidebar.Text>약점 나무 ↗</Sidebar.Text>
-          </Sidebar.Item>
-        </>
-      )}
+      {role === 'ROLE_STUDENT' &&
+        !isD034HiddenForRole(role, 'student.sidebar.weakness-tree') && (
+          <>
+            <div className="text-gray-8 text-ui-compact tablet:block hidden px-2 pt-4 pb-1 font-extrabold">
+              오픈챌린지에서 열립니다
+            </div>
+            <Sidebar.Item
+              href={PRIVATE.TREE.INDEX}
+              matchPath={PRIVATE.TREE.INDEX}
+            >
+              <Sprout
+                size={20}
+                className="shrink-0"
+              />
+              <Sidebar.Text>약점 나무 ↗</Sidebar.Text>
+            </Sidebar.Item>
+          </>
+        )}
 
       {/* 학부모 전용: v23 학부모 hub 정보 구조 6항목 */}
       {role === 'ROLE_PARENT' && (

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   assignedExams: vi.fn(),
+  role: vi.fn(),
   rooms: vi.fn(),
   wrongAnswers: vi.fn(),
 }));
@@ -13,7 +14,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@/shared/hooks/use-role', () => ({
-  useRole: () => ({ role: 'ROLE_STUDENT', isLoading: false }),
+  useRole: () => ({ role: mocks.role(), isLoading: false }),
 }));
 
 vi.mock('@/features/auth/hooks/use-auth', () => ({
@@ -38,6 +39,12 @@ vi.mock('@/shared/lib/analytics', () => ({
 
 describe('MVP-G 학생 선생님 연결 사이드바 계약', () => {
   beforeEach(() => {
+    mocks.role.mockReturnValue('ROLE_STUDENT');
+    mocks.rooms.mockReturnValue({
+      data: [],
+      isPending: false,
+      isSuccess: true,
+    });
     mocks.assignedExams.mockReturnValue({ data: [] });
     mocks.wrongAnswers.mockReturnValue({ data: { totalCount: 0, items: [] } });
   });
@@ -130,6 +137,34 @@ describe('MVP-G 학생 선생님 연결 사이드바 계약', () => {
     render(<DashboardSidebar />);
 
     expect(screen.getByRole('link', { name: '오답 회독 2' })).toBeVisible();
-    expect(screen.getByRole('link', { name: '응시장 2' })).toBeVisible();
+    expect(screen.queryByRole('link', { name: /응시장/ })).toBeNull();
+  });
+
+  test('D034-NAV-01 학생 사이드바는 비코어 진입점과 오픈챌린지 명칭을 렌더하지 않는다', () => {
+    render(<DashboardSidebar />);
+
+    expect(screen.queryByText('응시장')).toBeNull();
+    expect(screen.queryByText('친구')).toBeNull();
+    expect(screen.queryByText('포인트')).toBeNull();
+    expect(screen.queryByText('오픈챌린지에서 열립니다')).toBeNull();
+    expect(screen.queryByText('약점 나무 ↗')).toBeNull();
+  });
+
+  test('D034-NAV-02 선생님 사이드바의 기존 메뉴는 유지한다', () => {
+    mocks.role.mockReturnValue('ROLE_TEACHER');
+
+    render(<DashboardSidebar />);
+
+    expect(screen.getByRole('link', { name: '내 수업' })).toBeVisible();
+    expect(screen.getByRole('link', { name: '마이페이지' })).toBeVisible();
+  });
+
+  test('D034-NAV-03 관리자 사이드바의 기존 메뉴는 유지한다', () => {
+    mocks.role.mockReturnValue('ROLE_ADMIN');
+
+    render(<DashboardSidebar />);
+
+    expect(screen.getByRole('link', { name: '회원 관리' })).toBeVisible();
+    expect(screen.getByRole('link', { name: '오픈챌린지 관리' })).toBeVisible();
   });
 });
