@@ -3,6 +3,7 @@ import localFont from 'next/font/local';
 import Script from 'next/script';
 
 import { DesktopSiteNotice } from '@/app/_components/desktop-site-notice';
+import { Ga4Script } from '@/app/_components/ga4-script';
 import { PwaRegister } from '@/app/_components/pwa-register';
 import { StaleVersionReload } from '@/app/_components/stale-version-reload';
 import { SITE_CONFIG } from '@/config/site';
@@ -127,6 +128,7 @@ export default function RootLayout({
           <GlobalRoleNavigationShell>{children}</GlobalRoleNavigationShell>
         </GlobalProvider>
         <PwaRegister />
+        <Ga4Script />
         <StaleVersionReload />
       </body>
     </html>
