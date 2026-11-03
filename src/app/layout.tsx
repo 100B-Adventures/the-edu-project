@@ -33,7 +33,10 @@ export const metadata: Metadata = {
     apple: '/icons/apple-touch-icon-180.png',
   },
   verification: {
-    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+    // Search Console URL 접두어 속성 https://hongong.today/ 소유 확인(2026-11-03). 지우면 확인이 풀린다.
+    google:
+      process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ||
+      'shS3EGG6rnVs3_FgI-a2qeehdlsyqn2mOD_1Ojxy1yc',
     other: {
       'naver-site-verification':
         process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION ?? '',
@@ -61,6 +64,10 @@ export default function RootLayout({
   const shouldLoadGtm =
     Boolean(gtmId) && process.env.NEXT_PUBLIC_ENABLE_GTM === 'true';
 
+  // Microsoft Clarity(세션 녹화·히트맵, 2026-11-03). 운영 빌드에서만 켠다. ID 는 공개값.
+  const clarityId = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID || 'z7rli8ee4r';
+  const shouldLoadClarity = process.env.NEXT_PUBLIC_APP_ENV === 'production';
+
   return (
     <html
       lang="ko"
@@ -76,6 +83,15 @@ export default function RootLayout({
             __html: STALE_ASSET_GUARD,
           }}
         />
+        {shouldLoadClarity && (
+          <Script
+            id="clarity-init"
+            strategy="afterInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${clarityId}");`,
+            }}
+          />
+        )}
       </head>
       <body className="bg-gray-1 antialiased">
         {/* 승인 디자인의 앱 글꼴. CDN이 실패하면 로컬 Pretendard로 즉시 폴백한다. */}
