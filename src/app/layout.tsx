@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import Script from 'next/script';
 
+import { AdPixelsScript } from '@/app/_components/ad-pixels-script';
 import { DesktopSiteNotice } from '@/app/_components/desktop-site-notice';
 import { Ga4Script } from '@/app/_components/ga4-script';
 import { PwaRegister } from '@/app/_components/pwa-register';
@@ -92,6 +93,7 @@ export default function RootLayout({
             }}
           />
         )}
+        <AdPixelsScript />
       </head>
       <body className="bg-gray-1 antialiased">
         {/* 승인 디자인의 앱 글꼴. CDN이 실패하면 로컬 Pretendard로 즉시 폴백한다. */}

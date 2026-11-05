@@ -18,6 +18,7 @@ import { PRIVATE, PUBLIC } from '@/shared/constants';
 import {
   trackAuthSignupFail,
   trackAuthSignupSuccess,
+  trackSignUpConversion,
 } from '@/shared/lib/analytics';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -47,6 +48,7 @@ export const SocialSelectRole = () => {
     updateProfile(data, {
       onSuccess: async () => {
         trackAuthSignupSuccess(data.role, 'kakao');
+        trackSignUpConversion('kakao');
 
         await session.refresh();
         if (inviteToken) {

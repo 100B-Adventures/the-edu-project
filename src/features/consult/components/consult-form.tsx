@@ -23,6 +23,7 @@ import {
   Textarea,
 } from '@/shared/components/ui';
 import { cn } from '@/shared/lib';
+import { trackLeadConversion } from '@/shared/lib/analytics';
 import {
   classifyConsultationLeadError,
   handleApiError,
@@ -77,6 +78,7 @@ export function ConsultForm() {
       {
         onSuccess: (result) => {
           setReceiptNo(result.receiptNo);
+          trackLeadConversion('consult', result.receiptNo);
           toast.success('접수됐어요. 곧 연락드릴게요.');
         },
         onError: (error) => {

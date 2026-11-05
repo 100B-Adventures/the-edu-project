@@ -11,6 +11,7 @@ import { useCheckboxGroup } from '@/shared/hooks/use-checkbox-group';
 import {
   trackAuthSignupFail,
   trackAuthSignupSuccess,
+  trackSignUpConversion,
 } from '@/shared/lib/analytics';
 import { createContextFactory } from '@/shared/lib/context';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -85,6 +86,7 @@ export const RegisterFormContextProvider = ({
         onSuccess: () => {
           // 회원가입 성공 이벤트
           trackAuthSignupSuccess(data.role ?? null, 'email');
+          trackSignUpConversion('email');
           const query = buildPostSignupLoginQuery({
             inviteToken,
             from,

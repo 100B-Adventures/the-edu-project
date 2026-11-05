@@ -11,3 +11,4 @@ export { initAmplitude, trackAmplitudeEvent } from './amplitude';
 export { getUserType, setAnalyticsUser, resetAnalyticsUser } from './user';
 export * from './events';
 export * from './trackers';
+export * from './conversions';

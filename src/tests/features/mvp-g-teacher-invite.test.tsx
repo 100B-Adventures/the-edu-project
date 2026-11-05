@@ -26,6 +26,7 @@ vi.mock('@/entities/teacher-invite', () => ({
 vi.mock('@/shared/lib/analytics', () => ({
   trackTeacherInviteBannerImpression: mocks.impression,
   trackTeacherInviteIssueSuccess: mocks.issueSuccess,
+  trackSignUpConversion: vi.fn(),
   trackTeacherInviteAcceptSuccess: mocks.acceptSuccess,
   trackTeacherInviteSnooze: mocks.snoozeEvent,
 }));

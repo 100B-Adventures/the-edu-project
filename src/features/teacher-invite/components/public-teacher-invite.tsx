@@ -16,7 +16,10 @@ import {
 import { Button, Input } from '@/shared/components/ui';
 import { PRIVATE, PUBLIC } from '@/shared/constants/route';
 import { useCheckboxGroup } from '@/shared/hooks/use-checkbox-group';
-import { trackTeacherInviteAcceptSuccess } from '@/shared/lib/analytics';
+import {
+  trackSignUpConversion,
+  trackTeacherInviteAcceptSuccess,
+} from '@/shared/lib/analytics';
 import { getApiError } from '@/shared/lib/get-api-error';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
@@ -66,6 +69,7 @@ export const PublicTeacherInvite = ({ token }: { token: string }) => {
       teacherInviteRepository.accept(token, input),
     onSuccess: (result, input) => {
       setAccepted(result);
+      if (input.mode === 'SIGN_UP') trackSignUpConversion('invite');
       trackTeacherInviteAcceptSuccess(input.mode);
     },
   });

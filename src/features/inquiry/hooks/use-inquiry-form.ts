@@ -3,6 +3,7 @@ import { useRouter } from 'next/navigation';
 import { InquiryPayload, inquiryKeys, repository } from '@/entities/inquiry';
 import { previewKeys } from '@/entities/study-room-preview';
 import { PUBLIC } from '@/shared/constants';
+import { trackLeadConversion } from '@/shared/lib/analytics';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 /**
@@ -15,6 +16,7 @@ export function useCreateInquiry() {
   return useMutation({
     mutationFn: (params: InquiryPayload) => repository.createInquiry(params),
     onSuccess: (data) => {
+      trackLeadConversion('inquiry', data.id);
       queryClient.invalidateQueries({
         queryKey: previewKeys.all,
       });
