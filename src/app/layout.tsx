@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import Script from 'next/script';
@@ -93,7 +95,6 @@ export default function RootLayout({
             }}
           />
         )}
-        <AdPixelsScript />
       </head>
       <body className="bg-gray-1 antialiased">
         {/* 승인 디자인의 앱 글꼴. CDN이 실패하면 로컬 Pretendard로 즉시 폴백한다. */}
@@ -142,6 +143,9 @@ export default function RootLayout({
           </noscript>
         )}
         <GlobalProvider>
+          <Suspense fallback={null}>
+            <AdPixelsScript />
+          </Suspense>
           <Header />
           <GlobalRoleNavigationShell>{children}</GlobalRoleNavigationShell>
         </GlobalProvider>

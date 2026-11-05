@@ -86,7 +86,7 @@ export const RegisterFormContextProvider = ({
         onSuccess: () => {
           // 회원가입 성공 이벤트
           trackAuthSignupSuccess(data.role ?? null, 'email');
-          trackSignUpConversion('email');
+          trackSignUpConversion('email', data.role);
           const query = buildPostSignupLoginQuery({
             inviteToken,
             from,

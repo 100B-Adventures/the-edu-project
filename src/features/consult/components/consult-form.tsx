@@ -9,8 +9,8 @@ import { useSearchParams } from 'next/navigation';
 import { useCreateConsultationLead } from '@/features/consult/hooks/use-consult-form';
 import {
   CONSENT_VERSION,
-  ConsultForm as ConsultFormValues,
   ConsultFormSchema,
+  ConsultForm as ConsultFormValues,
   isMinorByBirthYear,
 } from '@/features/consult/schema/schema';
 import {
@@ -24,6 +24,7 @@ import {
 } from '@/shared/components/ui';
 import { cn } from '@/shared/lib';
 import { trackLeadConversion } from '@/shared/lib/analytics';
+import { mayBeUnder14ByBirthYear } from '@/shared/lib/analytics/ad-pixels';
 import {
   classifyConsultationLeadError,
   handleApiError,
@@ -57,7 +58,8 @@ export function ConsultForm() {
 
   const role = watch('role');
   const birthYear = watch('birthYear');
-  const showGuardianNotice = isMinorByBirthYear(birthYear) && role === 'STUDENT';
+  const showGuardianNotice =
+    isMinorByBirthYear(birthYear) && role === 'STUDENT';
 
   const onSubmit = (data: ConsultFormValues) => {
     mutation.mutate(
@@ -78,7 +80,11 @@ export function ConsultForm() {
       {
         onSuccess: (result) => {
           setReceiptNo(result.receiptNo);
-          trackLeadConversion('consult', result.receiptNo);
+          trackLeadConversion('consult', result.receiptNo, {
+            adsAllowed: !(
+              data.role === 'STUDENT' && mayBeUnder14ByBirthYear(data.birthYear)
+            ),
+          });
           toast.success('접수됐어요. 곧 연락드릴게요.');
         },
         onError: (error) => {
@@ -93,8 +99,7 @@ export function ConsultForm() {
       <div className="border-line-line1 flex flex-col items-center gap-2 rounded-xl border bg-white px-8 py-14 text-center">
         <p className="font-title-heading">고민이 잘 접수됐어요</p>
         <p className="font-body2-normal text-text-sub2">
-          접수번호 {receiptNo} · 선생님이 직접 확인하고 순서대로
-          연락드려요.
+          접수번호 {receiptNo} · 선생님이 직접 확인하고 순서대로 연락드려요.
         </p>
       </div>
     );
@@ -154,7 +159,10 @@ export function ConsultForm() {
       <Form.Item error={!!errors.name}>
         <Form.Label className="font-body1-heading">호칭 (선택)</Form.Label>
         <Form.Control>
-          <Input placeholder="어떻게 불러드릴까요?" {...register('name')} />
+          <Input
+            placeholder="어떻게 불러드릴까요?"
+            {...register('name')}
+          />
         </Form.Control>
         <Form.ErrorMessage className="text-sm">
           {errors.name?.message}
@@ -206,14 +214,17 @@ export function ConsultForm() {
             <Checkbox
               checked={watch('consentPrivacy')}
               onCheckedChange={(checked) =>
-                setValue(
-                  'consentPrivacy',
-                  (checked === true) as true,
-                  { shouldValidate: true }
-                )
+                setValue('consentPrivacy', (checked === true) as true, {
+                  shouldValidate: true,
+                })
               }
             />
-            <span className={cn('font-body2-normal', errors.consentPrivacy && 'text-system-warning')}>
+            <span
+              className={cn(
+                'font-body2-normal',
+                errors.consentPrivacy && 'text-system-warning'
+              )}
+            >
               {/* ⛔ 회장 확인 필요: 개인정보 수집·이용 동의 문구 최종본 (frd-public-portal-v1 §9) */}
               (필수) 개인정보 수집·이용에 동의합니다. 접수 목적(상담 연락)
               외에는 사용하지 않으며, 상담 종료 후 일정 기간 뒤 파기됩니다.
@@ -232,8 +243,8 @@ export function ConsultForm() {
             }
           />
           <span className="font-body2-normal">
-            (선택) 답변이 도움될 만하다고 판단되면, 개인정보를 지운 익명
-            사례로 다른 학생·학부모에게 공개하는 데 동의합니다.
+            (선택) 답변이 도움될 만하다고 판단되면, 개인정보를 지운 익명 사례로
+            다른 학생·학부모에게 공개하는 데 동의합니다.
           </span>
         </Checkbox.Label>
       </div>

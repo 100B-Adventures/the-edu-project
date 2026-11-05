@@ -48,7 +48,7 @@ export const SocialSelectRole = () => {
     updateProfile(data, {
       onSuccess: async () => {
         trackAuthSignupSuccess(data.role, 'kakao');
-        trackSignUpConversion('kakao');
+        trackSignUpConversion('kakao', data.role);
 
         await session.refresh();
         if (inviteToken) {

@@ -1,3 +1,5 @@
+import { isAdBlockedUrl, isAdEligibleSignUpRole } from './ad-pixels';
+
 /*
  * 광고 전환 이벤트 한 곳. Meta 픽셀·당근 픽셀·GA4 로 같은 전환을 보낸다.
  * 개인정보(이메일·전화·이름·생년)는 어떤 매체에도 넘기지 않는다.
@@ -30,20 +32,39 @@ const safely = (send: () => void) => {
   } catch {}
 };
 
-export const trackSignUpConversion = (method: 'email' | 'kakao' | 'invite') => {
+const onAdBlockedUrl = () =>
+  isAdBlockedUrl(window.location.pathname, window.location.search);
+
+/**
+ * 학생 가입과 초대 링크 가입은 Meta·당근으로 보내지 않는다. GA4 는 이번 범위 밖이라 그대로 둔다.
+ * role 을 모르면 보내지 않는다.
+ */
+export const trackSignUpConversion = (
+  method: 'email' | 'kakao' | 'invite',
+  role?: string | null
+) => {
   if (typeof window === 'undefined' || !firstTime(`signup:${method}`)) return;
-  safely(() => window.fbq?.('track', 'CompleteRegistration'));
-  safely(() => window.karrotPixel?.track('CompleteRegistration'));
+  if (
+    method !== 'invite' &&
+    isAdEligibleSignUpRole(role) &&
+    !onAdBlockedUrl()
+  ) {
+    safely(() => window.fbq?.('track', 'CompleteRegistration'));
+    safely(() => window.karrotPixel?.track('CompleteRegistration'));
+  }
   safely(() => window.gtag?.('event', 'sign_up', { method }));
 };
 
 export const trackLeadConversion = (
   source: 'consult' | 'inquiry',
-  uniqueId: string | number
+  uniqueId: string | number,
+  { adsAllowed = true }: { adsAllowed?: boolean } = {}
 ) => {
   if (typeof window === 'undefined') return;
   if (!firstTime(`lead:${source}:${uniqueId}`)) return;
-  safely(() => window.fbq?.('track', 'Lead'));
-  safely(() => window.karrotPixel?.track('Lead'));
+  if (adsAllowed && !onAdBlockedUrl()) {
+    safely(() => window.fbq?.('track', 'Lead'));
+    safely(() => window.karrotPixel?.track('Lead'));
+  }
   safely(() => window.gtag?.('event', 'generate_lead', { source }));
 };

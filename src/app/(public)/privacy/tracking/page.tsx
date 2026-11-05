@@ -29,7 +29,7 @@ const TOOLS = [
     name: 'Meta 픽셀',
     company: 'Meta Platforms, Inc. (미국)',
     items:
-      '방문 페이지 주소, 가입·문의 완료 이벤트, 쿠키 식별자, 기기·브라우저 정보, IP',
+      '방문 페이지 주소, 선생님·학부모 가입과 문의 완료 이벤트, 쿠키 식별자, 기기·브라우저 정보, IP',
     purpose: '광고 성과 측정과 맞춤형 광고',
     optOut: 'Meta 광고 설정 또는 브라우저 쿠키 차단',
     href: 'https://www.facebook.com/adpreferences',
@@ -38,7 +38,7 @@ const TOOLS = [
     name: '당근 픽셀(전환 추적 코드)',
     company: '당근마켓 주식회사',
     items:
-      '방문 페이지 주소, 가입·문의 완료 이벤트, 쿠키 식별자, 기기·브라우저 정보',
+      '방문 페이지 주소, 선생님·학부모 가입과 문의 완료 이벤트, 쿠키 식별자, 기기·브라우저 정보',
     purpose: '광고 성과 측정',
     optOut: '브라우저 쿠키 차단',
     href: null,
@@ -52,7 +52,8 @@ export default function PrivacyTrackingPage() {
       <p className="font-body2-normal text-text-sub2 mb-8 leading-relaxed">
         회사는 서비스 개선과 광고 성과 측정을 위해 아래 도구를 사용합니다. 이
         안내는 개인정보 처리방침의 서비스 이용 분석 및 쿠키 항목을 보충합니다.
-        이메일, 전화번호, 이름은 이 도구들로 보내지 않습니다.
+        회사는 이메일, 전화번호, 이름을 이 도구들의 이벤트 값으로 보내지
+        않습니다.
       </p>
 
       <div className="space-y-6">
@@ -97,6 +98,29 @@ export default function PrivacyTrackingPage() {
         ))}
       </div>
 
+      <section className="border-line-line1 mt-6 rounded-xl border p-5">
+        <h2 className="font-body1-heading mb-3">
+          Meta 픽셀과 당근 픽셀을 쓰지 않는 경우
+        </h2>
+        <ul className="font-body2-normal list-disc space-y-2 pl-5 leading-relaxed">
+          <li>
+            학생 계정으로 로그인한 경우 모든 화면. 학생 계정의 정확한 나이를
+            받지 않으므로 학생 계정 전체에 적용합니다. 그 브라우저에서
+            로그아웃한 뒤에도, 선생님이나 학부모 계정으로 로그인하기 전까지
+            같습니다.
+          </li>
+          <li>회원 정보의 생년월일로 만 14세 미만임이 확인되는 경우</li>
+          <li>학습, 문제 풀이, 학생 공개 프로필 화면</li>
+          <li>로그인 화면과 초대 링크 화면, 주소에 초대 값이 들어 있는 화면</li>
+          <li>학생 회원의 가입 완료, 초대 링크를 통한 가입 완료 이벤트</li>
+        </ul>
+        <p className="font-body2-normal text-text-sub2 mt-3 leading-relaxed">
+          Google Analytics와 Microsoft Clarity는 서비스 개선 목적으로 이
+          화면들에서도 동작합니다. 공개 화면을 로그인 없이 볼 때는 회사가
+          이용자의 나이를 알 수 없어 위 두 픽셀이 동작할 수 있습니다.
+        </p>
+      </section>
+
       <p className="font-body2-normal text-text-sub2 mt-8 leading-relaxed">
         국외 이전: 해외 법인이 제공하는 도구는 페이지를 이용하는 시점에 암호화
         통신으로 해당 업체 서버에 전송되어 국외에서 처리될 수 있습니다. 보유
@@ -104,7 +128,7 @@ export default function PrivacyTrackingPage() {
         제한이 없습니다. 문의: support@hongong.today
       </p>
       <p className="font-body2-normal text-text-sub2 mt-4">
-        시행일자: 2026년 11월 5일
+        시행일자: 2026년 11월 6일 (이전 안내: 2026년 11월 5일)
       </p>
     </main>
   );
