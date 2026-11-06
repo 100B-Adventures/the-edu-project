@@ -25,6 +25,23 @@ describe('ga4', () => {
     expect(script).toContain('allow_ad_personalization_signals:false');
   });
 
+  it('토큰 주소 문서에서는 태그를 붙이지 않는다', () => {
+    const run = (blocked: boolean) => {
+      document.head.innerHTML = '';
+      delete (window as unknown as Record<string, unknown>).gtag;
+      (window as unknown as Record<string, unknown>).__analyticsBlocked =
+        blocked;
+      new Function(ga4InitScript('G-TEST123'))();
+      return document.head.querySelectorAll('script').length;
+    };
+
+    expect(run(true)).toBe(0);
+    expect(window.gtag).toBeUndefined();
+    expect(run(false)).toBe(1);
+    expect(window.gtag).toBeTypeOf('function');
+    delete (window as unknown as Record<string, unknown>).__analyticsBlocked;
+  });
+
   it('운영 환경에서만 켠다', () => {
     expect(shouldLoadGa4('production', 'G-X')).toBe(true);
     expect(shouldLoadGa4('dev', 'G-X')).toBe(false);

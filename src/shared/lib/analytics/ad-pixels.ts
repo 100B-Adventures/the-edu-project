@@ -33,8 +33,8 @@ const STUDENT_PATHS = [
 ];
 const NON_LANDING_PATHS = ['/login', '/admin'];
 // 경로 자체에 초대 토큰이 들어가는 자리. Meta·당근은 페이지 주소를 그대로 받는다.
-const TOKEN_PATHS = ['/invite', '/friends/challenge'];
-const TOKEN_QUERY = /token|invite|code|secret/i;
+export const TOKEN_PATHS = ['/invite', '/friends/challenge'];
+export const TOKEN_QUERY = /token|invite|code|secret/i;
 const COURSE_LEARN_PATH = /^\/courses\/[^/]+\/learn(\/|$)/;
 const AD_ELIGIBLE_ROLES = new Set([
   'ROLE_TEACHER',

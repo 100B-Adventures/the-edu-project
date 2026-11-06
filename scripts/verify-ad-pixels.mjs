@@ -8,6 +8,7 @@
  *   E2E_STUDENT_EMAIL·E2E_STUDENT_PASSWORD 가 있으면 실제 학생 로그인까지 확인한다.
  */
 import { chromium } from '@playwright/test';
+import { gunzipSync } from 'node:zlib';
 
 const BASE = (process.argv[2] ?? 'https://hongong.today').replace(/\/$/, '');
 const STUB = process.env.AD_PIXEL_STUB === '1';
@@ -56,8 +57,34 @@ const open = async ({ member, cookie } = {}) => {
     );
   }
   const page = await context.newPage();
-  const state = { hits: [], errors: [] };
+  const state = {
+    hits: [],
+    errors: [],
+    tokenLeaks: new Set(),
+    thirdParty: new Set(),
+  };
+  const base = new URL(BASE).host;
   page.on('request', (request) => {
+    // 토큰이 자사 밖으로 나가는지 URL·본문(gzip 포함)을 전부 본다. Clarity 는 gzip 본문으로 보낸다.
+    const host = new URL(request.url()).host;
+    if (host !== base) {
+      state.thirdParty.add(host);
+      const buffer = request.postDataBuffer();
+      let body = '';
+      if (buffer) {
+        try {
+          body = gunzipSync(buffer).toString();
+        } catch {
+          body = buffer.toString();
+        }
+      }
+      let decoded = request.url();
+      try {
+        decoded = decodeURIComponent(decoded);
+      } catch {}
+      if (decoded.includes(FAKE) || body.includes(FAKE))
+        state.tokenLeaks.add(host);
+    }
     const kind = classify(request.url());
     if (kind) state.hits.push({ kind, url: request.url() });
   });
@@ -96,6 +123,7 @@ const record = (name, state, finalUrl, expect) => {
     pixelJs: js,
     ga4: count(state, 'ga4'),
     clarity: count(state, 'clarity'),
+    tokenLeakHosts: [...state.tokenLeaks],
     consoleErrors: state.errors.length,
     errorSample: state.errors.slice(0, 2).map((text) => text.slice(0, 140)),
     pass: ok,

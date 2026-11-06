@@ -14,6 +14,10 @@ import { GlobalRoleNavigationShell } from '@/features/dashboard/components/globa
 import { Header } from '@/layout/header';
 import { GlobalProvider } from '@/providers';
 import '@/shared/components/editor/styles/text-editor.css';
+import {
+  ANALYTICS_BLOCKED_FLAG,
+  tokenUrlGuardScript,
+} from '@/shared/lib/analytics/token-url-guard';
 import { APP_VERSION_IDENTITY } from '@/shared/lib/app-version';
 import { STALE_ASSET_GUARD } from '@/shared/lib/stale-asset-guard';
 import '@/styles/globals.css';
@@ -86,12 +90,14 @@ export default function RootLayout({
             __html: STALE_ASSET_GUARD,
           }}
         />
+        {/* 토큰 주소 판정. 분석 스크립트보다 먼저 돌아야 해서 인라인이다. */}
+        <script dangerouslySetInnerHTML={{ __html: tokenUrlGuardScript() }} />
         {shouldLoadClarity && (
           <Script
             id="clarity-init"
             strategy="afterInteractive"
             dangerouslySetInnerHTML={{
-              __html: `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${clarityId}");`,
+              __html: `if(!window.${ANALYTICS_BLOCKED_FLAG})(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","${clarityId}");`,
             }}
           />
         )}
@@ -121,7 +127,7 @@ export default function RootLayout({
               strategy="afterInteractive"
               dangerouslySetInnerHTML={{
                 __html: `
-                  (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+                  if(!window.${ANALYTICS_BLOCKED_FLAG})(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
                   new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
                   j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
                   'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
