@@ -82,6 +82,12 @@ export const Footer = () => {
           자동 수집 도구 안내
         </Link>
         <Link
+          href="/account-deletion"
+          className="max-tablet:min-h-touch-min max-tablet:inline-flex max-tablet:items-center ml-4 hover:underline"
+        >
+          계정 삭제 안내
+        </Link>
+        <Link
           href="/about"
           lang="en"
           className="max-tablet:min-h-touch-min max-tablet:inline-flex max-tablet:items-center ml-4 hover:underline"
