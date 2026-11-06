@@ -115,9 +115,12 @@ export default function PrivacyTrackingPage() {
           <li>학생 회원의 가입 완료, 초대 링크를 통한 가입 완료 이벤트</li>
         </ul>
         <p className="font-body2-normal text-text-sub2 mt-3 leading-relaxed">
-          Google Analytics와 Microsoft Clarity는 서비스 개선 목적으로 이
-          화면들에서도 동작합니다. 공개 화면을 로그인 없이 볼 때는 회사가
-          이용자의 나이를 알 수 없어 위 두 픽셀이 동작할 수 있습니다.
+          Google Analytics와 Microsoft Clarity는 서비스 개선 목적으로 위 화면 중
+          초대 링크 화면과 주소에 초대 값이 들어 있는 화면을 뺀 나머지에서
+          동작합니다. 초대 링크 화면과 그 화면에서 바로 넘어온 화면에서는 이 두
+          도구도 쓰지 않습니다. 초대 코드와 초대 링크를 보여 주는 부분은 Clarity
+          기록에서 가립니다. 공개 화면을 로그인 없이 볼 때는 회사가 이용자의
+          나이를 알 수 없어 위 두 픽셀이 동작할 수 있습니다.
         </p>
       </section>
 
