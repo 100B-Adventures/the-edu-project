@@ -39,6 +39,9 @@ describe('토큰 주소 차단 스크립트', () => {
     'https://hongong.today/friends/challenge/abc/result',
     'https://hongong.today/register?token=abc',
     'https://hongong.today/open-challenge/1?inviteToken=abc',
+    'https://hongong.today/select-role?redirect=%2Finvite%2Fchallenge%2Fabc',
+    'https://hongong.today/login?from=%2Finvite%2Fabc',
+    'https://hongong.today/login?redirect=%2Fregister%3Ftoken%3Dabc',
   ])('%s 은 분석을 끈다', (href) => {
     expect(run(href).fake[ANALYTICS_BLOCKED_FLAG]).toBe(true);
   });
@@ -49,6 +52,8 @@ describe('토큰 주소 차단 스크립트', () => {
     'https://hongong.today/learning',
     'https://hongong.today/invitee',
     'https://hongong.today/?utm_source=meta&fbclid=abc',
+    'https://hongong.today/login?from=%2Fdashboard%2Fstudent',
+    'https://hongong.today/login?redirect=%2F%2Fother.example%2Finvite%2Fabc',
   ])('%s 은 분석을 유지한다', (href) => {
     expect(run(href).fake[ANALYTICS_BLOCKED_FLAG]).toBeUndefined();
   });
@@ -106,6 +111,8 @@ describe('토큰 주소 차단 스크립트', () => {
       ['/friends/challenge/a', ''],
       ['/courses', '?code=1'],
       ['/courses', ''],
+      ['/select-role', '?redirect=%2Finvite%2Fchallenge%2Fabc'],
+      ['/login', '?from=%2Fdashboard%2Fstudent'],
     ] as const) {
       const blocked = run(`https://hongong.today${path}${search}`).fake[
         ANALYTICS_BLOCKED_FLAG

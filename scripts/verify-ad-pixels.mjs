@@ -163,6 +163,7 @@ for (const path of [
   `/register?token=${FAKE}`,
   `/login?token=${FAKE}`,
   `/select-role?token=${FAKE}`,
+  `/select-role?redirect=${encodeURIComponent(`/invite/challenge/${FAKE}`)}`,
 ]) {
   await visit(`제외 ${path.replace(FAKE, 'TOKEN')}`, path, 'off');
 }
@@ -213,11 +214,16 @@ await visit('생년월일 14세 미만(응답 모의)', '/courses', 'off', {
   const pixelGone = await page.evaluate(
     () => !window.fbq && !window.karrotPixel
   );
+  const analyticsGone = await page.evaluate(
+    () => !window.gtag && !window.clarity
+  );
   const pass =
     before > 0 &&
     leaked === 0 &&
     after === before &&
     pixelGone &&
+    analyticsGone &&
+    state.tokenLeaks.size === 0 &&
     page.url().includes(FAKE);
   if (!pass) failed += 1;
   results.push({
@@ -226,6 +232,8 @@ await visit('생년월일 14세 미만(응답 모의)', '/courses', 'off', {
     after,
     leaked,
     pixelGone,
+    analyticsGone,
+    tokenLeakHosts: [...state.tokenLeaks],
     finalPath: new URL(page.url()).pathname.replace(FAKE, 'TOKEN'),
     pass,
   });
@@ -239,7 +247,8 @@ await visit('생년월일 14세 미만(응답 모의)', '/courses', 'off', {
   const referrer = await page.evaluate(() => document.referrer);
   const referrerPass =
     referrer.includes(FAKE) &&
-    count(state, 'meta') + count(state, 'karrot') === 0;
+    count(state, 'meta') + count(state, 'karrot') === 0 &&
+    state.tokenLeaks.size === 0;
   if (!referrerPass) failed += 1;
   results.push({
     name: '초대 주소 referrer 전체 이동',

@@ -44,7 +44,13 @@ export const AdPixelsScript = () => {
       session,
     });
     if (!allowed) {
-      if (loaded) window.location.replace(window.location.href);
+      // location.href 가 아니라 라우터 주소로 간다. 토큰 주소는 pushState 가 가로채여 location.href 가 아직
+      // 이전 페이지라, location.href 로 다시 읽으면 가던 길이 취소되고 이전 페이지로 돌아간다.
+      if (loaded) {
+        window.location.replace(
+          `${pathname}${search ? `?${search}` : ''}${window.location.hash}`
+        );
+      }
       return;
     }
 

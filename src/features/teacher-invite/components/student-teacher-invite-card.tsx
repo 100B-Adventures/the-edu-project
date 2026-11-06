@@ -8,9 +8,9 @@ import {
   type TeacherInviteIssue,
   teacherInviteRepository,
 } from '@/entities/teacher-invite';
+import { useStudentDashboardStudyRoomListQuery } from '@/features/dashboard/hooks/use-student-dashboard-query';
 import { Button, Card } from '@/shared/components/ui';
 import { PRIVATE } from '@/shared/constants/route';
-import { useStudentDashboardStudyRoomListQuery } from '@/features/dashboard/hooks/use-student-dashboard-query';
 import {
   trackTeacherInviteBannerImpression,
   trackTeacherInviteIssueSuccess,
@@ -48,7 +48,9 @@ export const StudentTeacherInviteCard = ({
     onSuccess: async (_response, mode) => {
       setHidden(true);
       trackTeacherInviteSnooze(mode);
-      await queryClient.invalidateQueries({ queryKey: ['teacher-invite-state'] });
+      await queryClient.invalidateQueries({
+        queryKey: ['teacher-invite-state'],
+      });
     },
   });
 
@@ -69,7 +71,9 @@ export const StudentTeacherInviteCard = ({
   if (!compact && (state.isPending || state.isFetching)) {
     return (
       <Card data-testid="student-teacher-invite-loading">
-        <p className="text-gray-8 text-xs">선생님 연결 상태를 확인하는 중입니다.</p>
+        <p className="text-gray-8 text-xs">
+          선생님 연결 상태를 확인하는 중입니다.
+        </p>
       </Card>
     );
   }
@@ -80,8 +84,7 @@ export const StudentTeacherInviteCard = ({
       <Card data-testid="student-teacher-invite-connected">
         <h2 className="text-gray-12 text-base font-extrabold">선생님 연결</h2>
         <p className="text-gray-9 mt-2 text-xs leading-6">
-          이미 선생님과 연결되어 있어요. 연결된 수업으로 바로 이동할 수
-          있어요.
+          이미 선생님과 연결되어 있어요. 연결된 수업으로 바로 이동할 수 있어요.
         </p>
         {primaryRoom && (
           <Link
@@ -105,6 +108,7 @@ export const StudentTeacherInviteCard = ({
       {invite ? (
         <div className="border-orange-4 bg-orange-1 mt-3 rounded-lg border p-3">
           <p
+            data-clarity-mask="true"
             className="text-gray-12 text-xs font-bold break-all"
             data-testid="teacher-invite-url"
           >

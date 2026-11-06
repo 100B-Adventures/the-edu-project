@@ -112,6 +112,7 @@ const TeacherInviteCodeCard = () => {
           <div
             className="border-orange-4 text-orange-11 rounded-row p-card-pad border border-dashed text-center text-sm font-extrabold tracking-widest break-all"
             data-testid="teacher-invite-code-value"
+            data-clarity-mask="true"
           >
             {invitation.isPending
               ? '코드를 불러오는 중입니다'

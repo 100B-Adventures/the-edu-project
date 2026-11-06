@@ -47,12 +47,24 @@ const EXCLUDED_BROWSER_KEY = 'ad-pixels:excluded-browser';
 const underPath = (pathname: string, base: string) =>
   pathname === base || pathname.startsWith(`${base}/`);
 
-/** 주소에 초대·인증 토큰이 실릴 수 있으면 true. 이전 페이지 주소(referrer) 판정에도 쓴다. */
-export const isTokenBearingUrl = (pathname: string, search: string) =>
-  TOKEN_PATHS.some((base) => underPath(pathname, base)) ||
-  Array.from(new URLSearchParams(search).keys()).some((key) =>
-    TOKEN_QUERY.test(key)
+/**
+ * 주소에 초대·인증 토큰이 실릴 수 있으면 true. 이전 페이지 주소(referrer) 판정에도 쓴다.
+ * /select-role?redirect=%2Finvite%2Fchallenge%2F... 처럼 쿼리 값에 인코딩된 내부 경로도 본다.
+ */
+export const isTokenBearingUrl = (
+  pathname: string,
+  search: string
+): boolean => {
+  if (TOKEN_PATHS.some((base) => underPath(pathname, base))) return true;
+  return Array.from(new URLSearchParams(search).entries()).some(
+    ([key, value]) => {
+      if (TOKEN_QUERY.test(key)) return true;
+      if (!value.startsWith('/') || value.startsWith('//')) return false;
+      const inner = new URL(value, 'https://internal.invalid');
+      return isTokenBearingUrl(inner.pathname, inner.search);
+    }
   );
+};
 
 export const isAdBlockedUrl = (pathname: string, search: string) =>
   STUDENT_PATHS.some((base) => underPath(pathname, base)) ||

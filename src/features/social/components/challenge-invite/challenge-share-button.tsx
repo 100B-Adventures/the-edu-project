@@ -138,7 +138,10 @@ export const ChallengeShareButton = ({
               <>
                 <div className="flex items-stretch gap-2">
                   <div className="border-line-line2 bg-gray-1 rounded-button flex min-w-0 flex-1 items-center border px-3">
-                    <span className="font-caption-normal text-text-sub1 truncate">
+                    <span
+                      data-clarity-mask="true"
+                      className="font-caption-normal text-text-sub1 truncate"
+                    >
                       {shareUrl}
                     </span>
                   </div>
