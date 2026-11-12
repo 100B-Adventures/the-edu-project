@@ -119,7 +119,7 @@ export const CourseDetailClient = ({ courseId }: CourseDetailClientProps) => {
     refetch,
   } = useCourseDetailQuery(courseId);
   const { data: lessons } = useCourseLessonsQuery(courseId);
-  // 수강 신청/구매는 CourseTierSection 이 자체 처리한다(3티어별 구매).
+  // 유료 티어는 CourseTierSection 이 상담 신청으로 연결한다.
 
   if (isLoading) return <CourseDetailSkeleton />;
 
@@ -361,11 +361,7 @@ export const CourseDetailClient = ({ courseId }: CourseDetailClientProps) => {
               필요한 도움의 정도가 달라요.
             </p>
             <div className="mt-5">
-              <CourseTierSection
-                courseId={courseId}
-                isAuthenticated={isAuthenticated}
-                onRequireLogin={() => router.push(loginHref)}
-              />
+              <CourseTierSection courseId={courseId} />
             </div>
           </section>
 

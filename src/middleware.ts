@@ -28,6 +28,7 @@ const PUBLIC_PATHS = new Set<string>([
   '/register',
   '/403',
   '/api/v1/auth/login',
+  '/api/v1/auth/sign-up', // 이메일 회원가입: 비로그인 방문자가 부른다
   '/api/v1/member/info', // 자체 인증 처리 (쿠키 없으면 204 반환)
   '/api/drawing-session-ingest', // dev: iPad 필기 캡처 (route는 production에서 404)
 ]);

@@ -120,8 +120,8 @@ export const SegmentCheckpointDialog = ({
                   className="text-text-sub2 mt-0.5 shrink-0"
                 />
                 <span className="font-caption-normal text-text-sub2">
-                  수강 정보를 확인하지 못해 제출할 수 없어요. (백엔드 API 갭 —
-                  회장 확인 필요)
+                  수강 정보를 확인하지 못해 제출할 수 없어요. 잠시 후 다시
+                  시도해 주세요.
                 </span>
               </div>
             )}

@@ -1,16 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
 
-import { type CourseProduct } from '@/entities/course';
-import { Button, StatusBadge, showBottomToast } from '@/shared/components/ui';
+import { Button, StatusBadge } from '@/shared/components/ui';
+import { PUBLIC } from '@/shared/constants';
 import { cn } from '@/shared/lib';
 import { CheckCircle2, ShieldCheck } from 'lucide-react';
 
-import {
-  useCourseProductsQuery,
-  useCreateCourseOrderMutation,
-} from '../../hooks';
+import { useCourseProductsQuery } from '../../hooks';
 import { dailyPriceLabel, planTypeLabel, priceLabel } from '../../lib/format';
 
 /* ─────────────────────────────────────────────────────
@@ -58,33 +55,19 @@ const CERT_WINDOW_DAYS = 90;
 
 type CourseTierSectionProps = {
   courseId: number;
-  isAuthenticated: boolean;
-  onRequireLogin: () => void;
 };
 
 /* ─────────────────────────────────────────────────────
- * 3티어 선택·구매 섹션
+ * 3티어 선택·상담 섹션
  *  - 129,000(자율) / 190,000(관리형·BEST) / 790,000(1:1 프리미엄)
- *  - 실결제 confirm은 PG 미정(⛔ R-A)이라 스텁 — 주문 생성까지만 요청한다.
+ *  - 가격은 비교 기준으로 유지하고, 결제 방법은 상담 뒤 안내한다.
  * ────────────────────────────────────────────────────*/
-export const CourseTierSection = ({
-  courseId,
-  isAuthenticated,
-  onRequireLogin,
-}: CourseTierSectionProps) => {
+export const CourseTierSection = ({ courseId }: CourseTierSectionProps) => {
   const {
     data: products,
     isLoading,
     isError,
   } = useCourseProductsQuery(courseId);
-  const { mutate: createOrder, isPending } = useCreateCourseOrderMutation();
-  const [pendingProductId, setPendingProductId] = useState<number | null>(null);
-  const [orderStub, setOrderStub] = useState<{
-    orderKey: string;
-    amount: number;
-    planLabel: string;
-  } | null>(null);
-
   if (isLoading) {
     return <CourseTierSkeleton />;
   }
@@ -92,31 +75,6 @@ export const CourseTierSection = ({
   if (isError || !products || products.length === 0) {
     return null;
   }
-
-  const handlePurchase = (product: CourseProduct) => {
-    if (!isAuthenticated) {
-      onRequireLogin();
-      return;
-    }
-    setPendingProductId(product.productId);
-    createOrder(
-      { courseId, productId: product.productId, studentId: null },
-      {
-        onSuccess: (result) => {
-          setOrderStub({
-            orderKey: result.orderKey,
-            amount: result.amount,
-            // 백엔드는 planLabel 을 주지 않는다 → planType 으로 라벨 생성.
-            planLabel:
-              result.planLabel ??
-              planTypeLabel(result.planType ?? product.planType),
-          });
-          showBottomToast('주문이 생성됐어요. 결제 연동은 준비 중이에요.');
-        },
-        onSettled: () => setPendingProductId(null),
-      }
-    );
-  };
 
   return (
     <section className="flex flex-col gap-4">
@@ -137,10 +95,6 @@ export const CourseTierSection = ({
               comparison: undefined as string | undefined,
               honestNote: '',
             };
-            const isPremium = product.planType === 'PREMIUM_1ON1';
-            const isSubmitting =
-              isPending && pendingProductId === product.productId;
-
             return (
               <div
                 key={product.productId}
@@ -172,6 +126,9 @@ export const CourseTierSection = ({
                   </span>
                   <span className="font-caption-normal text-key-color-primary tabular-nums">
                     {dailyPriceLabel(product.price)}
+                  </span>
+                  <span className="font-caption-normal text-text-sub2">
+                    결제는 상담 뒤 안내
                   </span>
                   {copy.comparison && (
                     <span className="font-caption-normal text-text-sub2">
@@ -215,50 +172,23 @@ export const CourseTierSection = ({
                   </p>
                 )}
 
-                {isPremium ? (
-                  // ⛔ 회장 확인 필요: 790 티어(1:1 프리미엄) 혜택 실체 미정
-                  // (frd-v2.md §9 R-E 연장선 — 배정 튜터·1:1 커리큘럼 구성이
-                  //  확정되지 않아 구매 버튼은 "상담 신청"으로 대체한다)
-                  <Button
-                    variant="outlined"
-                    size="medium"
-                    className="w-full"
-                    onClick={() =>
-                      showBottomToast(
-                        '1:1 프리미엄은 상담 후 배정돼요. 곧 연락드릴게요.'
-                      )
-                    }
+                <Button
+                  asChild
+                  variant={product.best ? 'primary' : 'outlined'}
+                  size="medium"
+                  className="w-full"
+                >
+                  <Link
+                    href={PUBLIC.CONSULT.INDEX}
+                    data-testid="course-tier-consult-link"
                   >
-                    상담 신청하기
-                  </Button>
-                ) : (
-                  <Button
-                    variant={product.best ? 'primary' : 'outlined'}
-                    size="medium"
-                    className="w-full"
-                    disabled={isSubmitting}
-                    onClick={() => handlePurchase(product)}
-                  >
-                    {isSubmitting ? '주문 생성 중…' : '이 티어로 시작하기'}
-                  </Button>
-                )}
+                    상담 신청
+                  </Link>
+                </Button>
               </div>
             );
           })}
       </div>
-
-      {orderStub && (
-        <div className="border-line-line2 rounded-card flex flex-col gap-1 border border-dashed bg-white p-4">
-          <span className="font-body2-heading text-text-main">
-            주문이 생성됐어요 — {orderStub.planLabel} ·{' '}
-            {priceLabel(orderStub.amount)}
-          </span>
-          <span className="font-caption-normal text-text-sub2">
-            주문번호 {orderStub.orderKey} · 실제 결제 연동(PG)은 준비 중이에요.
-            미검증: 결제 승인·웹훅은 dev 미배포라 실 API로 확인 못 했어요.
-          </span>
-        </div>
-      )}
     </section>
   );
 };

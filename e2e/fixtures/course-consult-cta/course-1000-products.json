@@ -1,0 +1,30 @@
+{
+  "status": 200,
+  "message": "성공입니다.",
+  "data": [
+    {
+      "productId": 1,
+      "planType": "SELF_PACED",
+      "price": 129000,
+      "refundGuaranteed": false,
+      "reviewManaged": false,
+      "best": false
+    },
+    {
+      "productId": 3,
+      "planType": "MANAGED",
+      "price": 190000,
+      "refundGuaranteed": true,
+      "reviewManaged": true,
+      "best": true
+    },
+    {
+      "productId": 5,
+      "planType": "PREMIUM_1ON1",
+      "price": 790000,
+      "refundGuaranteed": true,
+      "reviewManaged": true,
+      "best": false
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "status": 200,
+  "message": "성공입니다.",
+  "data": {
+    "courseId": 1000,
+    "title": "수학Ⅰ 핵심 개념 마스터",
+    "subject": "MATH",
+    "description": "2027 수능 공통 수학Ⅰ 범위(지수·로그·삼각함수·수열)를 EBSi 기출 문항으로 완성하는 코스입니다. 개념별로 묶어 단계적으로 풀어보세요.",
+    "price": 0,
+    "freeLessonCount": 1,
+    "lessonCount": 26,
+    "published": true
+  }
+}
