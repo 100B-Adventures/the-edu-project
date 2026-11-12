@@ -1,5 +1,7 @@
 import type { Types } from '@amplitude/analytics-browser';
 
+import { isProductionAnalyticsHost } from './production-host';
+
 type AmplitudeModule = typeof import('@amplitude/analytics-browser');
 
 let initialized = false;
@@ -12,6 +14,7 @@ const shouldEnableAmplitude =
 const canUseAmplitude = (): boolean => {
   if (typeof window === 'undefined') return false;
   if (process.env.NODE_ENV !== 'production') return false;
+  if (!isProductionAnalyticsHost(window.location.hostname)) return false;
   return shouldEnableAmplitude;
 };
 

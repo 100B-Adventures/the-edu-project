@@ -30,7 +30,13 @@ export const AdPixelsScript = () => {
   const birthDate = member?.birthDate;
 
   useEffect(() => {
-    if (!shouldLoadAdPixels(process.env.NEXT_PUBLIC_APP_ENV)) return;
+    if (
+      !shouldLoadAdPixels(
+        process.env.NEXT_PUBLIC_APP_ENV,
+        window.location.hostname
+      )
+    )
+      return;
     if (status === 'loading') return;
 
     const session = { status, role, birthDate };

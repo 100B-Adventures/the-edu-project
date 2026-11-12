@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { isTokenBearingUrl } from './ad-pixels';
-import { ANALYTICS_BLOCKED_FLAG, tokenUrlGuardScript } from './token-url-guard';
+import { ga4InitScript } from './ga4';
+import {
+  ANALYTICS_BLOCKED_FLAG,
+  sanitizeAnalyticsUrl,
+  sanitizeAnalyticsUrlScript,
+  tokenUrlGuardScript,
+} from './token-url-guard';
 
 const flags = window as unknown as Record<string, unknown>;
 
@@ -13,7 +19,13 @@ const run = (href: string, referrer = '') => {
   const replaceState = vi.fn();
   const url = new URL(href);
   const fake: Record<string, unknown> = {
-    location: { href, origin: url.origin, assign, replace },
+    location: {
+      href,
+      origin: url.origin,
+      hostname: url.hostname,
+      assign,
+      replace,
+    },
     history: { pushState, replaceState },
   };
   const source = tokenUrlGuardScript().replace(/\(window\);$/, '(w);');
@@ -119,5 +131,70 @@ describe('토큰 주소 차단 스크립트', () => {
       ];
       expect(Boolean(blocked)).toBe(isTokenBearingUrl(path, search));
     }
+  });
+
+  it.each([
+    'https://hongong.today/',
+    'https://www.hongong.today/',
+    'https://HONGONG.today/',
+  ])('운영 호스트 %s 에서는 분석을 켠다', (href) => {
+    expect(run(href).fake[ANALYTICS_BLOCKED_FLAG]).toBeUndefined();
+  });
+
+  it.each([
+    'http://localhost:3000/',
+    'http://127.0.0.1:3000/',
+    'https://stage.hongong.today/',
+    'https://d-edu.site/',
+    'https://hongong.today.evil.example/',
+  ])('운영 호스트가 아닌 %s 에서는 분석을 끈다', (href) => {
+    expect(run(href).fake[ANALYTICS_BLOCKED_FLAG]).toBe(true);
+  });
+});
+
+describe('분석 전송 주소 정리', () => {
+  it.each([
+    [
+      'https://hongong.today/register?token=abc&x=1',
+      'https://hongong.today/register?x=1',
+    ],
+    [
+      'https://hongong.today/invite/abc123',
+      'https://hongong.today/invite/:token',
+    ],
+    [
+      'https://hongong.today/friends/challenge/abc/result',
+      'https://hongong.today/friends/challenge/:token',
+    ],
+    [
+      'https://hongong.today/open-challenge/1?inviteToken=a&code=b&secret=c',
+      'https://hongong.today/open-challenge/1',
+    ],
+    [
+      'https://hongong.today/courses?utm_source=meta',
+      'https://hongong.today/courses?utm_source=meta',
+    ],
+  ])('%s 는 토큰 없는 주소로 바뀐다', (input, expected) => {
+    expect(sanitizeAnalyticsUrl(input)).toBe(expected);
+    expect(sanitizeAnalyticsUrl(input)).not.toMatch(/abc|token=|inviteToken=/);
+  });
+
+  it('인라인판은 TS 판과 같은 결과를 내고 GA4 config 의 page_location·page_referrer 에 쓰인다', () => {
+    const inline = new Function(
+      'location',
+      `${sanitizeAnalyticsUrlScript()}return __sanitizeAnalyticsUrl;`
+    )({ href: 'https://hongong.today/' }) as (u: string) => string;
+
+    [
+      'https://hongong.today/register?token=abc&x=1',
+      'https://hongong.today/invite/abc123',
+      'https://hongong.today/courses?utm_source=meta',
+    ].forEach((u) => expect(inline(u)).toBe(sanitizeAnalyticsUrl(u)));
+
+    const ga = ga4InitScript('G-TEST');
+    expect(ga).toContain('page_location:__sanitizeAnalyticsUrl(location.href)');
+    expect(ga).toContain(
+      'page_referrer:__sanitizeAnalyticsUrl(document.referrer)'
+    );
   });
 });

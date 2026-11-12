@@ -1,4 +1,7 @@
-import { ANALYTICS_BLOCKED_FLAG } from './token-url-guard';
+import {
+  ANALYTICS_BLOCKED_FLAG,
+  sanitizeAnalyticsUrlScript,
+} from './token-url-guard';
 
 /*
  * GA4 직접 태그 (관제 마케팅 수집기가 속성 516671158 을 읽는다, 2026-10-12).
@@ -16,13 +19,15 @@ export const ga4ScriptSrc = (id: string = GA4_MEASUREMENT_ID) =>
 export const ga4InitScript = (id: string = GA4_MEASUREMENT_ID) =>
   [
     `if(!window.${ANALYTICS_BLOCKED_FLAG}){`,
+    sanitizeAnalyticsUrlScript(),
     'window.dataLayer=window.dataLayer||[];',
     'window.gtag=function(){dataLayer.push(arguments);};',
     "gtag('js',new Date());",
-    `gtag('config',${JSON.stringify(id)},{allow_google_signals:false,allow_ad_personalization_signals:false});`,
+    `gtag('config',${JSON.stringify(id)},{allow_google_signals:false,allow_ad_personalization_signals:false,page_location:__sanitizeAnalyticsUrl(location.href),page_referrer:__sanitizeAnalyticsUrl(document.referrer)});`,
     `var s=document.createElement('script');s.async=true;s.src=${JSON.stringify(ga4ScriptSrc(id))};document.head.appendChild(s);`,
     '}',
   ].join('');
 
+/** 실행 호스트 검사는 ga4InitScript 가 ANALYTICS_BLOCKED_FLAG(token-url-guard)로 한다. */
 export const shouldLoadGa4 = (appEnv: string | undefined, id: string) =>
   appEnv === 'production' && id.length > 0;

@@ -1,3 +1,5 @@
+import { isProductionAnalyticsHost } from './production-host';
+
 /*
  * 광고 전환 픽셀 (2026-11-05, 회장 2026-10-27 승인). ID 는 페이지 소스에 그대로 나가는 공개값이다.
  * 운영(hongong.today) 빌드에서만 켠다. GA4·Clarity 와 같은 기준이다.
@@ -9,8 +11,10 @@ export const META_PIXEL_ID =
 export const KARROT_PIXEL_ID =
   process.env.NEXT_PUBLIC_KARROT_PIXEL_ID || '1793082397549324001';
 
-export const shouldLoadAdPixels = (appEnv: string | undefined) =>
-  appEnv === 'production';
+export const shouldLoadAdPixels = (
+  appEnv: string | undefined,
+  hostname: string | undefined
+) => appEnv === 'production' && isProductionAnalyticsHost(hostname);
 
 /*
  * 픽셀을 켜지 않는 자리 (2026-11-06, 회장 "니가할거 다 하고 진행하라고").
