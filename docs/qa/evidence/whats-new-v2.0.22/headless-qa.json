@@ -1,0 +1,72 @@
+{
+  "status": 200,
+  "notes": 3,
+  "firstCount": 1,
+  "repeatCount": 0,
+  "overflows": {
+    "390": 0,
+    "834": 0,
+    "1280": 0
+  },
+  "eventChecks": {
+    "tryView": true,
+    "try": true,
+    "feedbackView": true,
+    "feedback": true,
+    "dismissView": true,
+    "dismiss": true
+  },
+  "eventCalls": {
+    "tryCalls": [
+      [
+        "event",
+        "whats_new_view",
+        {
+          "version": "v2.0.22"
+        }
+      ],
+      [
+        "event",
+        "whats_new_try",
+        {
+          "version": "v2.0.22"
+        }
+      ]
+    ],
+    "feedbackCalls": [
+      [
+        "event",
+        "whats_new_view",
+        {
+          "version": "v2.0.22"
+        }
+      ],
+      [
+        "event",
+        "whats_new_feedback",
+        {
+          "version": "v2.0.22",
+          "value": "like"
+        }
+      ]
+    ],
+    "dismissCalls": [
+      [
+        "event",
+        "whats_new_view",
+        {
+          "version": "v2.0.22"
+        }
+      ],
+      [
+        "event",
+        "whats_new_dismiss",
+        {
+          "version": "v2.0.22"
+        }
+      ]
+    ]
+  },
+  "consoleErrors": 0,
+  "errorSamples": []
+}
