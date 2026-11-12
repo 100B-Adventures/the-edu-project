@@ -7,11 +7,14 @@ import { Button } from '@/shared/components/ui/button';
 import { Form } from '@/shared/components/ui/form';
 import { Input } from '@/shared/components/ui/input';
 import { useCountdown } from '@/shared/hooks/use-countdown';
+import { AxiosError } from 'axios';
 
 import { useCheckEmailDuplicate, useVerifyCode } from '../services/query';
 import { TermsAgreement } from './terms-agreement';
 
-const RESEND_COUNTDOWN = 30;
+// 서버가 같은 이메일로 1분에 1회만 발송하므로 같은 값으로 맞춘다.
+const RESEND_COUNTDOWN = 60;
+const RATE_LIMIT_MESSAGE = '잠시 뒤 다시 시도해 주세요. (최대 10분)';
 const VERIFICATION_CODE_LENGTH = 6;
 
 type CredentialStepProps = {
@@ -46,6 +49,17 @@ export const CredentialStep = ({ onNext }: CredentialStepProps) => {
           setEmailCodeVerified(false);
           startCountdown();
         },
+        onError: (error: unknown) => {
+          // 429(발송·확인 횟수 제한)는 전용 문구로 안내한다.
+          const rateLimited =
+            error instanceof AxiosError && error.response?.status === 429;
+          form.setError('verificationCode', {
+            message: rateLimited
+              ? RATE_LIMIT_MESSAGE
+              : '인증 메일을 보내지 못했어요. 잠시 후 다시 시도해주세요.',
+          });
+          if (rateLimited) startCountdown();
+        },
       }
     );
   };
@@ -63,9 +77,13 @@ export const CredentialStep = ({ onNext }: CredentialStepProps) => {
           setEmailCodeVerified(true);
           form.clearErrors('verificationCode');
         },
-        onError: () => {
+        onError: (error: unknown) => {
+          const rateLimited =
+            error instanceof AxiosError && error.response?.status === 429;
           form.setError('verificationCode', {
-            message: '올바른 인증코드가 아닙니다.',
+            message: rateLimited
+              ? RATE_LIMIT_MESSAGE
+              : '올바른 인증코드가 아닙니다.',
           });
         },
       }
