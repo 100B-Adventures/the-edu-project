@@ -9,6 +9,7 @@ import { DesktopSiteNotice } from '@/app/_components/desktop-site-notice';
 import { Ga4Script } from '@/app/_components/ga4-script';
 import { PwaRegister } from '@/app/_components/pwa-register';
 import { StaleVersionReload } from '@/app/_components/stale-version-reload';
+import { WhatsNewCard } from '@/app/_components/whats-new-card';
 import { SITE_CONFIG } from '@/config/site';
 import { GlobalRoleNavigationShell } from '@/features/dashboard/components/global-role-navigation-shell';
 import { Header } from '@/layout/header';
@@ -41,9 +42,11 @@ export const metadata: Metadata = {
   },
   verification: {
     // Search Console URL 접두어 속성 https://hongong.today/ 소유 확인(2026-11-03). 지우면 확인이 풀린다.
-    google:
-      process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ||
+    google: [
+      process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
       'shS3EGG6rnVs3_FgI-a2qeehdlsyqn2mOD_1Ojxy1yc',
+      '69VG23UnnyYvrV8yuqRhCF9Ajp_-vdR2gibjoYbO8fI',
+    ].filter((value): value is string => Boolean(value)),
     other: {
       'naver-site-verification':
         process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION ?? '',
@@ -158,6 +161,9 @@ export default function RootLayout({
         <PwaRegister />
         <Ga4Script />
         <StaleVersionReload />
+        <Suspense fallback={null}>
+          <WhatsNewCard />
+        </Suspense>
       </body>
     </html>
   );

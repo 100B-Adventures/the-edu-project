@@ -256,6 +256,12 @@ export interface DashboardQnaClickParams extends CommonEventParams {
  * 이벤트 이름 상수
  */
 export const GA4_EVENTS = {
+  // What's new
+  WHATS_NEW_VIEW: 'whats_new_view',
+  WHATS_NEW_TRY: 'whats_new_try',
+  WHATS_NEW_FEEDBACK: 'whats_new_feedback',
+  WHATS_NEW_DISMISS: 'whats_new_dismiss',
+
   // Auth
   AUTH_LOGIN_CLICK: 'auth_login_click',
   AUTH_LOGIN_SUCCESS: 'auth_login_success',

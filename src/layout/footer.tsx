@@ -88,6 +88,12 @@ export const Footer = () => {
           계정 삭제 안내
         </Link>
         <Link
+          href="/updates"
+          className="max-tablet:min-h-touch-min max-tablet:inline-flex max-tablet:items-center ml-4 hover:underline"
+        >
+          업데이트 소식
+        </Link>
+        <Link
           href="/about"
           lang="en"
           className="max-tablet:min-h-touch-min max-tablet:inline-flex max-tablet:items-center ml-4 hover:underline"

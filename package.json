@@ -1,8 +1,12 @@
 {
   "name": "the-edu-front",
-  "version": "2.0.21",
+  "version": "2.0.22",
   "private": true,
   "scripts": {
+    "generate:release-notes": "node scripts/generate-release-notes.mjs",
+    "prebuild": "npm run generate:release-notes",
+    "pretest": "npm run generate:release-notes",
+    "pretest:ci": "npm run generate:release-notes",
     "dev": "next dev --turbopack",
     "https": "next dev -H app.dev.the-edu.site -p 3000 --experimental-https",
     "debug": "node --inspect node_modules/next/dist/bin/next dev",
