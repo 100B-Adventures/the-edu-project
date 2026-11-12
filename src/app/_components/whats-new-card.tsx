@@ -70,7 +70,7 @@ export function WhatsNewCardView({
   return (
     <section
       aria-label="새로운 기능"
-      className="border-line-line1 shadow-popover rounded-card p-card-pad fixed right-section-gap-mobile bottom-section-gap-mobile left-section-gap-mobile z-(--z-layer-notification) border bg-white tablet:right-section-gap tablet:bottom-section-gap tablet:left-auto tablet:w-full tablet:max-w-dialog"
+      className="border-line-line1 shadow-popover rounded-card p-card-pad-mobile tablet:p-card-pad fixed right-section-gap-mobile bottom-section-gap-mobile left-section-gap-mobile z-(--z-layer-notification) border bg-white tablet:right-section-gap tablet:bottom-section-gap tablet:left-auto tablet:w-full tablet:max-w-dialog"
       data-testid="whats-new-card"
     >
       <div className="mb-content-gap flex items-start justify-between gap-content-gap">
@@ -93,9 +93,14 @@ export function WhatsNewCardView({
         </Button>
       </div>
 
-      <div className="font-body2-normal text-text-sub2 mb-section-gap space-y-content-gap break-keep">
-        {note.body.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
+      <div className="font-body2-normal text-text-sub2 mb-content-gap tablet:mb-section-gap space-y-content-gap break-keep">
+        {note.body.map((paragraph, index) => (
+          <p
+            className={index > 0 ? 'tablet:block hidden' : undefined}
+            key={paragraph}
+          >
+            {paragraph}
+          </p>
         ))}
       </div>
 
@@ -105,8 +110,8 @@ export function WhatsNewCardView({
         </Link>
       </Button>
 
-      <div className="border-line-line1 mt-section-gap border-t pt-section-gap">
-        <p className="font-caption-heading text-text-sub2 mb-content-gap">
+      <div className="border-line-line1 mt-content-gap tablet:mt-section-gap gap-content-gap border-t pt-content-gap tablet:pt-section-gap flex items-center">
+        <p className="font-caption-heading text-text-sub2 shrink-0">
           의견 남기기
         </p>
         {feedback ? (
@@ -114,7 +119,7 @@ export function WhatsNewCardView({
             의견을 남겼어요. 다음 개선에 반영할게요.
           </p>
         ) : (
-          <div className="flex gap-target-gap">
+          <div className="flex min-w-0 flex-1 gap-target-gap">
             <Button
               className="min-w-0 flex-1 gap-inline-gap"
               onClick={() => onFeedback('like')}

@@ -1,12 +1,92 @@
 {
+  "pass": true,
+  "server": "Next.js production server (next build + next start)",
   "status": 200,
   "notes": 3,
   "firstCount": 1,
   "repeatCount": 0,
-  "overflows": {
-    "390": 0,
-    "834": 0,
-    "1280": 0
+  "viewports": {
+    "390": {
+      "cardRect": {
+        "x": 14,
+        "y": 579,
+        "width": 362,
+        "height": 251
+      },
+      "cardHeightRatio": 0.2972,
+      "horizontalOverflow": 0,
+      "fixedElements": [
+        {
+          "tag": "header",
+          "testId": null,
+          "className": "h-header-height bg-gray-12 px-section-gap shell:px-8 fixed top-0 right-0 left-0 z-50 flex min-w-0 items-center border-b border-gray-200",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 60
+          },
+          "overlapArea": 0
+        }
+      ],
+      "totalOverlapArea": 0,
+      "reactQueryDevtoolsCount": 0,
+      "consoleErrors": []
+    },
+    "834": {
+      "cardRect": {
+        "x": 418,
+        "y": 775,
+        "width": 400,
+        "height": 321
+      },
+      "cardHeightRatio": 0.2883,
+      "horizontalOverflow": 0,
+      "fixedElements": [
+        {
+          "tag": "header",
+          "testId": null,
+          "className": "h-header-height bg-gray-12 px-section-gap shell:px-8 fixed top-0 right-0 left-0 z-50 flex min-w-0 items-center border-b border-gray-200",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 834,
+            "height": 60
+          },
+          "overlapArea": 0
+        }
+      ],
+      "totalOverlapArea": 0,
+      "reactQueryDevtoolsCount": 0,
+      "consoleErrors": []
+    },
+    "1280": {
+      "cardRect": {
+        "x": 864,
+        "y": 463,
+        "width": 400,
+        "height": 321
+      },
+      "cardHeightRatio": 0.4007,
+      "horizontalOverflow": 0,
+      "fixedElements": [
+        {
+          "tag": "header",
+          "testId": null,
+          "className": "h-header-height bg-gray-12 px-section-gap shell:px-8 fixed top-0 right-0 left-0 z-50 flex min-w-0 items-center border-b border-gray-200",
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 1280,
+            "height": 60
+          },
+          "overlapArea": 0
+        }
+      ],
+      "totalOverlapArea": 0,
+      "reactQueryDevtoolsCount": 0,
+      "consoleErrors": []
+    }
   },
   "eventChecks": {
     "tryView": true,
