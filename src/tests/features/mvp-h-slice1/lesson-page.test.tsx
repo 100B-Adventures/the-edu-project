@@ -21,6 +21,21 @@ vi.mock('next/navigation', () => ({
 }));
 vi.mock('@/shared/hooks/use-role', () => ({ useRole: () => mocks.role }));
 vi.mock('@/features/study-notes/hooks', () => ({
+  useGetTeacherNoteDetail: () => ({
+    isPending: false,
+    data: {
+      id: 7,
+      resolvedContent: {
+        content: JSON.stringify({
+          type: 'doc',
+          content: [
+            { type: 'image', attrs: { src: 'https://img.example/a.png' } },
+          ],
+        }),
+      },
+      studentInfos: [{ studentId: 9, studentName: '민서', readAt: null }],
+    },
+  }),
   useGetStudentNotesList: () => ({
     isPending: false,
     data: {
@@ -162,5 +177,31 @@ describe('시험 항목 S22 1:1 수업 화면', () => {
     renderWithQuery(<LessonPage studyRoomId={4} />);
     await screen.findByLabelText('질문 제목');
     expect(screen.getByTestId('lesson-weekly-send')).toBeDisabled();
+  });
+
+  it('S22-6 선생님 화면은 학생 탭, 판서 사진, 같이 푼 문제 카드, 힌트, 업로드 링크를 보인다', async () => {
+    mocks.role.role = 'ROLE_TEACHER';
+    renderWithQuery(<LessonPage studyRoomId={4} />);
+    const tabs = await screen.findByTestId('lesson-student-tabs');
+    expect(tabs).toHaveTextContent('민서');
+    expect(tabs.querySelector('a')).toHaveAttribute(
+      'href',
+      '/dashboard/teacher/students/9'
+    );
+    expect(await screen.findByAltText('판서 사진')).toBeInTheDocument();
+    expect(await screen.findByTestId('lesson-problem-card')).toHaveTextContent(
+      '다시 풀기'
+    );
+    expect(await screen.findByTestId('lesson-hint')).toHaveTextContent(
+      '오답 먼저'
+    );
+    expect(screen.getByTestId('lesson-add-photo')).toHaveAttribute(
+      'href',
+      '/study-rooms/4/note/7/edit'
+    );
+    expect(screen.getByTestId('lesson-upload-photo')).toHaveAttribute(
+      'href',
+      '/study-rooms/4/note/new'
+    );
   });
 });
