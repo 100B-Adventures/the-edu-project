@@ -11,10 +11,33 @@ vi.mock('next/navigation', async (importOriginal) => ({
   },
 }));
 
-const params = <T,>(value: T) => ({ params: Promise.resolve(value) });
+// 이 시험은 플래그가 꺼진 경로에서 notFound 를 부르는지만 본다. 무거운 화면 모듈은 가볍게 대체해
+// import 비용(느린 환경에서 시간 초과)을 없앤다(N-18).
+const stub = (name: string) => () => ({ __stub: name });
+vi.mock('@/features/review/components/review-home', () => ({
+  ReviewHome: stub('ReviewHome'),
+}));
+vi.mock('@/features/solution-note/components/solution-note-view', () => ({
+  SolutionNoteView: stub('SolutionNoteView'),
+}));
+vi.mock('@/features/review/components/blank-retry', () => ({
+  BlankRetry: stub('BlankRetry'),
+}));
+vi.mock('@/features/teaching-lesson/components/lesson-page', () => ({
+  LessonPage: stub('LessonPage'),
+}));
+vi.mock('@/features/teaching-lesson/components/student-review-summary', () => ({
+  StudentReviewSummary: stub('StudentReviewSummary'),
+}));
+vi.mock('@/features/teaching-lesson/components/share-meta-view', () => ({
+  ShareMetaView: stub('ShareMetaView'),
+}));
+vi.mock('@/features/teaching-lesson/server-share-meta', () => ({
+  buildShareDescription: () => '',
+  fetchShareMetaOnServer: async () => null,
+}));
 
-// 페이지마다 큰 화면 모듈을 처음 import 하므로 느린 환경에서 기본 5초를 넘긴다(N-18).
-const SLOW_IMPORT_TIMEOUT = 30_000;
+const params = <T,>(value: T) => ({ params: Promise.resolve(value) });
 
 describe('시험 항목 S26 플래그 꺼짐에서는 새 URL 이 열리지 않는다', () => {
   beforeEach(() => vi.resetModules());
@@ -76,8 +99,7 @@ describe('시험 항목 S26 플래그 꺼짐에서는 새 URL 이 열리지 않�
     async (_name, render) => {
       vi.stubEnv('NEXT_PUBLIC_MVPH_SLICE1', '');
       await expect(render()).rejects.toThrow(/NEXT_NOT_FOUND/);
-    },
-    SLOW_IMPORT_TIMEOUT
+    }
   );
 
   it.each(cases)(
@@ -85,7 +107,6 @@ describe('시험 항목 S26 플래그 꺼짐에서는 새 URL 이 열리지 않�
     async (_name, render) => {
       vi.stubEnv('NEXT_PUBLIC_MVPH_SLICE1', 'on');
       await expect(render()).resolves.toBeTruthy();
-    },
-    SLOW_IMPORT_TIMEOUT
+    }
   );
 });
