@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 import {
@@ -10,6 +11,7 @@ import {
   type ReviewOverview,
   type ReviewView,
 } from '@/entities/wrong-answer';
+import { useOpenChallengeDetailQuery } from '@/features/open-challenge/hooks/use-open-challenge';
 import { useMyPointWalletQuery } from '@/features/point/hooks/use-point';
 import { Skeleton } from '@/shared/components/loading';
 import { Button, EmptyState, showBottomToast } from '@/shared/components/ui';
@@ -114,6 +116,30 @@ const LevelBar = ({ overview }: { overview: ReviewOverview }) => {
   );
 };
 
+/** 오늘 퀘스트 카드의 문제 사진. 서버가 항목별 썸네일을 주지 않아 문제 상세의 문제 이미지를 쓴다. */
+const QuestThumb = ({ challengeId }: { challengeId: number | null }) => {
+  const detail = useOpenChallengeDetailQuery(String(challengeId ?? ''), {
+    enabled: challengeId !== null,
+  });
+  const url = detail.data?.questionImageUrl ?? null;
+  return (
+    <span
+      className="border-line-line1 relative block h-28 w-full overflow-hidden rounded-card border bg-gray-1"
+      data-testid="quest-thumb"
+    >
+      {url && (
+        <Image
+          src={url}
+          alt=""
+          fill
+          unoptimized
+          className="object-contain"
+        />
+      )}
+    </span>
+  );
+};
+
 const QuestSection = ({
   quest,
   onOpen,
@@ -148,13 +174,14 @@ const QuestSection = ({
                   item.wrongAnswerId !== null && onOpen(item.wrongAnswerId)
                 }
                 data-testid="review-quest-item"
-                className="border-line-line1 rounded-card hover:border-orange-9 flex min-h-control-xl w-full flex-col items-start gap-1 border bg-white p-card-pad text-left disabled:opacity-60"
+                className="border-line-line1 rounded-card hover:border-orange-9 flex min-h-control-xl w-full flex-col items-start gap-2 border bg-white p-card-pad text-left disabled:opacity-60"
               >
+                <QuestThumb challengeId={item.challengeId} />
                 <span className="font-body1-heading text-text-main w-full truncate">
                   {item.title ?? '문제'}
                 </span>
-                <span className="font-caption-normal text-text-sub1">
-                  {[item.origin?.label, item.dueLabel]
+                <span className="font-body2-normal text-text-sub1">
+                  {[item.reason, item.dueLabel]
                     .filter(Boolean)
                     .join(' · ')}
                 </span>

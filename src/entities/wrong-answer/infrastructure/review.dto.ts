@@ -9,6 +9,8 @@ const questItem = z.object({
   challengeId: z.number().nullable(),
   title: z.string().nullish(),
   dueLabel: z.string().nullish(),
+  reason: z.string().nullish(),
+  difficulty: z.string().nullish(),
   solvedStatus: z.string().nullish(),
   kind: z.string().nullish(),
   badge: z.string().nullish(),

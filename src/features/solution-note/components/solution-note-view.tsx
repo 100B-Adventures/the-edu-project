@@ -74,7 +74,7 @@ const Labels = ({ detail }: { detail: SolutionNoteDetail }) => (
 );
 
 const ProblemBand = ({ challengeId }: { challengeId: number | null }) => {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const challengeQuery = useOpenChallengeDetailQuery(
     challengeId ? String(challengeId) : '',
     { enabled: challengeId !== null }
@@ -365,7 +365,7 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
                 onStrokesChange={setStrokes}
               />
             ) : latest?.pngUrl ? (
-              <span className="bg-gray-1 relative block min-h-96 w-full overflow-hidden">
+              <span className="relative block min-h-96 w-full overflow-hidden bg-white">
                 <Image
                   src={latest.pngUrl}
                   alt="제출한 풀이"

@@ -101,7 +101,7 @@ export const ReviewImportMenu = () => {
       <Button
         variant="primary"
         size="small"
-        className="gap-1.5"
+        className="border-gray-12 bg-gray-12 hover:bg-gray-11 active:bg-gray-10 gap-1.5 text-white"
         aria-expanded={menuOpen}
         aria-haspopup="menu"
         isLoading={uploading}
