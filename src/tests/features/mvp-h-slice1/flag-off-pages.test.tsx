@@ -13,6 +13,9 @@ vi.mock('next/navigation', async (importOriginal) => ({
 
 const params = <T,>(value: T) => ({ params: Promise.resolve(value) });
 
+// 페이지마다 큰 화면 모듈을 처음 import 하므로 느린 환경에서 기본 5초를 넘긴다(N-18).
+const SLOW_IMPORT_TIMEOUT = 30_000;
+
 describe('시험 항목 S26 플래그 꺼짐에서는 새 URL 이 열리지 않는다', () => {
   beforeEach(() => vi.resetModules());
   afterEach(() => vi.unstubAllEnvs());
@@ -73,7 +76,8 @@ describe('시험 항목 S26 플래그 꺼짐에서는 새 URL 이 열리지 않�
     async (_name, render) => {
       vi.stubEnv('NEXT_PUBLIC_MVPH_SLICE1', '');
       await expect(render()).rejects.toThrow(/NEXT_NOT_FOUND/);
-    }
+    },
+    SLOW_IMPORT_TIMEOUT
   );
 
   it.each(cases)(
@@ -81,6 +85,7 @@ describe('시험 항목 S26 플래그 꺼짐에서는 새 URL 이 열리지 않�
     async (_name, render) => {
       vi.stubEnv('NEXT_PUBLIC_MVPH_SLICE1', 'on');
       await expect(render()).resolves.toBeTruthy();
-    }
+    },
+    SLOW_IMPORT_TIMEOUT
   );
 });
