@@ -23,6 +23,8 @@ const STUDENT_TITLE_BY_PATH: Array<[RegExp, string]> = [
   [/^\/dashboard\/student\/results\/?$/, '내 성과'],
   [/^\/dashboard\/student\/look-back\/?$/, '돌아보기'],
   [/^\/dashboard\/student\/wrong-answers(\/.*)?$/, '오답 회독'],
+  [/^\/dashboard\/student\/review(\/.*)?$/, 'N회독'],
+  [/^\/dashboard\/student\/solution-notes(\/.*)?$/, '풀이노트'],
   [/^\/dashboard\/student\/unit-notes(\/.*)?$/, '단권화 노트'],
   [/^\/dashboard\/student\/exam-hall\/?$/, '응시장'],
   [/^\/dashboard\/student\/exams(\/.*)?$/, '시험 응시'],

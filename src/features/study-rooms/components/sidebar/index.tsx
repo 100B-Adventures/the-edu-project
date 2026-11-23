@@ -25,6 +25,7 @@ import { StudyroomStatusToggle } from '@/shared/components/ui';
 import { showBottomToast } from '@/shared/components/ui/bottom-toast';
 import { PRIVATE } from '@/shared/constants';
 import { useRole } from '@/shared/hooks/use-role';
+import { isMvpHSliceEnabled } from '@/shared/lib/mvp-h-slice';
 import { Info } from 'lucide-react';
 
 import { useInvitationQuery } from '../../hooks/use-invitation-query';
@@ -305,6 +306,13 @@ export const StudyroomSidebar = ({
           studyRoomId={studyRoomId}
           canManage={canManage}
         />
+        {isMvpHSliceEnabled() && (
+          <SidebarButton
+            onClick={() => router.push(PRIVATE.ROOM.LESSON(studyRoomId))}
+            btnName="1:1 수업"
+            imgUrl="/studynotes/invite_student.svg"
+          />
+        )}
         {/* 수업노트 탭에서만 보이는 컴포넌트 */}
         {segment === 'note' && (
           <StudyroomGroups

@@ -65,6 +65,13 @@ const DASHBOARD = {
   QNA: '/dashboard/qna',
   WRONG_ANSWERS: '/dashboard/student/wrong-answers',
   WRONG_ANSWER_REVIEW: (id: number) => `/dashboard/student/wrong-answers/${id}`,
+  // mvp-h 조각 1: N회독 첫 화면 · 백지 다시 풀기 · 제출 뒤 풀이노트 · 선생님 학생 보기
+  STUDENT_REVIEW: '/dashboard/student/review',
+  STUDENT_REVIEW_BLANK: (wrongAnswerId: number) =>
+    `/dashboard/student/review/blank/${wrongAnswerId}`,
+  SOLUTION_NOTE: (id: number) => `/dashboard/student/solution-notes/${id}`,
+  TEACHER_STUDENT: (studentId: number) =>
+    `/dashboard/teacher/students/${studentId}`,
   UNIT_NOTES: '/dashboard/student/unit-notes',
   UNIT_NOTE_ROOM: (id: number) => `/dashboard/student/unit-notes/${id}`,
   EXAM_ATTEMPT: (id: number) => `/dashboard/student/exams/${id}`,
@@ -94,6 +101,8 @@ const SETTINGS = '/settings';
  * ────────────────────────────────────────────────────*/
 const ROOM = {
   DETAIL: (id: number) => `/study-rooms/${id}/note`,
+  /** mvp-h 조각 1: 1:1 수업노트(학생·선생님 공용 화면) */
+  LESSON: (id: number) => `/study-rooms/${id}/lesson`,
   MANAGE: (id: number) => `/study-rooms/${id}/manage`,
   MEMBERS: (id: number) => `/study-rooms/${id}/member`,
   CREATE: '/study-rooms/new',
@@ -311,6 +320,8 @@ export const PUBLIC = {
   TEACHERS,
   CONSULT,
   BOARD,
+  /** mvp-h 조각 1: 카톡으로 공유한 수업노트 미리보기(비로그인 메타만) */
+  TEACHING_NOTE_SHARE: (token: string) => `/s/${token}`,
 } as const;
 
 /* ─────────────────────────────────────────────────────

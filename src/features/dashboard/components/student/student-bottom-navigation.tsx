@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useStudentDashboardStudyRoomListQuery } from '@/features/dashboard/hooks/use-student-dashboard-query';
 import { PRIVATE } from '@/shared/constants';
 import { cn } from '@/shared/lib';
+import { isMvpHSliceEnabled } from '@/shared/lib/mvp-h-slice';
 import {
   BookOpenCheck,
   ChartNoAxesCombined,
@@ -48,6 +49,13 @@ const BASE_ITEMS = [
   },
 ] as const;
 
+const REVIEW_ITEM = {
+  label: 'N회독',
+  href: PRIVATE.DASHBOARD.STUDENT_REVIEW,
+  match: /^\/dashboard\/student\/review(?:\/.*)?$/,
+  icon: BookOpenCheck,
+} as const;
+
 type StudentBottomNavigationViewProps = {
   pathname: string;
   primaryRoomId?: number;
@@ -65,9 +73,13 @@ export const StudentBottomNavigationView = ({
         icon: School,
       }
     : null;
-  const items = roomItem
-    ? [BASE_ITEMS[0], roomItem, ...BASE_ITEMS.slice(1)]
+  // MVP-H slice 1: 켜져 있으면 오답 탭 자리에 N회독을 둔다(오답 회독은 N회독 안으로 들어간다).
+  const baseItems = isMvpHSliceEnabled()
+    ? BASE_ITEMS.map((item) => (item === BASE_ITEMS[3] ? REVIEW_ITEM : item))
     : BASE_ITEMS;
+  const items = roomItem
+    ? [baseItems[0], roomItem, ...baseItems.slice(1)]
+    : baseItems;
 
   return (
     <nav

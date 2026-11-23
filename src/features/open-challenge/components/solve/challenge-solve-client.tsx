@@ -17,8 +17,10 @@ import {
   useDrawingUpload,
 } from '@/shared/components/drawing';
 import { BackButton, Button, Dialog, Prompt } from '@/shared/components/ui';
-import { PUBLIC } from '@/shared/constants';
+import { PRIVATE, PUBLIC } from '@/shared/constants';
 import { cn } from '@/shared/lib';
+import { isMvpHSliceEnabled } from '@/shared/lib/mvp-h-slice';
+import { submitSolutionNote } from '@/features/solution-note/submit-solution-note';
 import { trackOcStart, trackOcSubmit } from '@/shared/lib/analytics';
 import {
   Bot,
@@ -399,6 +401,25 @@ export const ChallengeSolveClient = ({
         hint_count: messageCountRef.current,
         elapsed: Math.round((Date.now() - mountTimeRef.current) / 1000),
       });
+
+      // MVP-H slice 1: 제출 뒤에는 풀이노트(내 풀이 | 해설 두 칸)로 간다.
+      // 실패하면 기존 결과 화면 흐름으로 이어 가 제출 자체는 막지 않는다.
+      if (isMvpHSliceEnabled()) {
+        try {
+          const solutionNoteId = await submitSolutionNote({
+            attemptId: Number(attemptId),
+            strokes: drawingStrokes,
+            elapsedSeconds: Math.round(
+              (Date.now() - mountTimeRef.current) / 1000
+            ),
+            idempotencyKey: `sn-${challengeId}-${attemptId}`,
+          });
+          router.push(PRIVATE.DASHBOARD.SOLUTION_NOTE(solutionNoteId));
+          return;
+        } catch {
+          // 아래 기존 흐름으로 계속한다.
+        }
+      }
 
       // D-14: 정오와 무관하게 손글씨가 있으면 문제를 푼 사람들에게 공유한다.
       let drawingShareFailure:

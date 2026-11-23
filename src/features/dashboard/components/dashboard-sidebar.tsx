@@ -11,8 +11,10 @@ import { Sidebar } from '@/shared/components/sidebar';
 import { Button as UnstyledButton } from '@/shared/components/ui/button';
 import { PRIVATE } from '@/shared/constants/route';
 import { useRole } from '@/shared/hooks/use-role';
+import { isMvpHSliceEnabled } from '@/shared/lib/mvp-h-slice';
 import { trackGnbLogoutClick } from '@/shared/lib/analytics';
 import {
+  BookOpenCheck,
   ChartNoAxesCombined,
   ClipboardListIcon,
   Diamond,
@@ -152,6 +154,19 @@ export const DashboardSidebar = () => {
           <div className="text-gray-8 text-ui-compact tablet:block hidden px-2 pt-4 pb-1 font-extrabold">
             더 보기
           </div>
+
+          {isMvpHSliceEnabled() && (
+            <Sidebar.Item
+              href={PRIVATE.DASHBOARD.STUDENT_REVIEW}
+              matchPath={PRIVATE.DASHBOARD.STUDENT_REVIEW}
+            >
+              <BookOpenCheck
+                size={20}
+                className="shrink-0"
+              />
+              <Sidebar.Text>N회독</Sidebar.Text>
+            </Sidebar.Item>
+          )}
 
           <Sidebar.Item
             href={PRIVATE.DASHBOARD.WRONG_ANSWERS}
