@@ -132,4 +132,22 @@ describe('시험 항목 S22 1:1 수업 화면', () => {
       solvedTogether: true,
     });
   });
+
+  it('S22-6 이번 주 질문 보내기는 weekly-question 으로 제목과 내용을 POST 한다', async () => {
+    const user = userEvent.setup();
+    mocks.post.mockResolvedValue({ contextId: 5, weekStart: '2026-11-23' });
+    renderWithQuery(<LessonPage studyRoomId={4} />);
+    await user.type(await screen.findByLabelText('질문 제목'), '합 공식');
+    await user.type(screen.getByLabelText('질문 내용'), '왜 그런가요');
+    await user.click(screen.getByTestId('lesson-weekly-send'));
+    await waitFor(() => expect(mocks.post).toHaveBeenCalled());
+    expect(mocks.post.mock.calls[0]![0]).toBe('/student/study-rooms/4/weekly-question');
+    expect(mocks.post.mock.calls[0]![1]).toMatchObject({ title: '합 공식', content: '왜 그런가요' });
+  });
+
+  it('S22-7 거절: 제목이 비면 보내기 버튼이 눌리지 않는다', async () => {
+    renderWithQuery(<LessonPage studyRoomId={4} />);
+    await screen.findByLabelText('질문 제목');
+    expect(screen.getByTestId('lesson-weekly-send')).toBeDisabled();
+  });
 });

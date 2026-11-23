@@ -10,6 +10,7 @@ import { useGetStudentNotesList, useGetTeacherNotesList } from '@/features/study
 import { Skeleton } from '@/shared/components/loading';
 import { Button, EmptyState, Input, showBottomToast } from '@/shared/components/ui';
 import { PRIVATE } from '@/shared/constants';
+import { getApiError } from '@/shared/lib';
 import { useRole } from '@/shared/hooks/use-role';
 import { Share2 } from 'lucide-react';
 
@@ -20,6 +21,7 @@ import {
   useLessonInfoQuery,
   useSaveLessonInfoMutation,
   useSaveMemoMutation,
+  useWeeklyQuestionMutation,
 } from '../hooks/use-lesson';
 
 type LessonPageProps = { studyRoomId: number };
@@ -105,6 +107,9 @@ const StudentLesson = ({ studyRoomId }: LessonPageProps) => {
   const cards = useClassProblemCardsQuery(true);
   const memoMutation = useSaveMemoMutation(studyRoomId);
   const [memo, setMemo] = useState<string | null>(null);
+  const weeklyMutation = useWeeklyQuestionMutation(studyRoomId);
+  const [qTitle, setQTitle] = useState('');
+  const [qBody, setQBody] = useState('');
   const noteRows: NoteRow[] = notes.data?.content ?? [];
   const memoValue = memo ?? info.data?.myMemo ?? '';
   const nextLesson = formatNextLesson(info.data?.nextLesson);
@@ -115,6 +120,25 @@ const StudentLesson = ({ studyRoomId }: LessonPageProps) => {
       showBottomToast('메모를 저장했어요.');
     } catch {
       showBottomToast('저장하지 못했어요. 다시 시도해 주세요.');
+    }
+  };
+
+  const handleAsk = async () => {
+    try {
+      await weeklyMutation.mutateAsync({
+        title: qTitle.trim(),
+        content: qBody.trim(),
+      });
+      setQTitle('');
+      setQBody('');
+      showBottomToast('선생님께 질문을 보냈어요.');
+    } catch (error) {
+      const code = getApiError(error)?.code ?? '';
+      showBottomToast(
+        code === 'WEEKLY_QUESTION_LIMIT'
+          ? '이번 주 질문은 이미 보냈어요.'
+          : '질문을 보내지 못했어요. 다시 시도해 주세요.'
+      );
     }
   };
 
@@ -183,6 +207,32 @@ const StudentLesson = ({ studyRoomId }: LessonPageProps) => {
             </p>
           </Panel>
         )}
+        <Panel
+          title="선생님께 질문"
+          testId="lesson-weekly"
+        >
+          <Input
+            aria-label="질문 제목"
+            placeholder="제목"
+            maxLength={100}
+            value={qTitle}
+            onChange={(event) => setQTitle(event.target.value)}
+          />
+          <Input
+            aria-label="질문 내용"
+            placeholder="내용"
+            value={qBody}
+            onChange={(event) => setQBody(event.target.value)}
+          />
+          <Button
+            disabled={!qTitle.trim() || !qBody.trim()}
+            isLoading={weeklyMutation.isPending}
+            onClick={() => void handleAsk()}
+            data-testid="lesson-weekly-send"
+          >
+            보내기
+          </Button>
+        </Panel>
         <Panel
           title="내 메모"
           testId="lesson-memo"

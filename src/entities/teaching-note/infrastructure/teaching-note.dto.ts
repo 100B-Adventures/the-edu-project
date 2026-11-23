@@ -64,6 +64,11 @@ const studentReviewSummary = z.object({
 
 const memoSaved = z.unknown();
 
+const weeklyQuestion = z.object({
+  contextId: z.number().nullish(),
+  weekStart: z.string().nullish(),
+});
+
 export const dto = {
   lessonInfo,
   attachProblem,
@@ -71,6 +76,7 @@ export const dto = {
   shareMeta,
   studentReviewSummary,
   memoSaved,
+  weeklyQuestion,
 };
 
 /** 계약 §1.14: challengeId 또는 snapshot 중 하나 */

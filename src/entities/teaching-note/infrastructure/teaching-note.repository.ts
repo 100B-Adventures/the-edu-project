@@ -79,7 +79,20 @@ const getShareMeta = async (token: string) => {
   return unwrapEnvelope(response, dto.shareMeta);
 };
 
+/** POST /api/student/study-rooms/{id}/weekly-question (§1.17). 무료 방은 한 주에 한 번. */
+const askWeeklyQuestion = async (
+  studyRoomId: number,
+  input: { title: string; content: string }
+) => {
+  const response = await api.private.post(
+    `/student/study-rooms/${studyRoomId}/weekly-question`,
+    { title: input.title, content: input.content, mediaIds: [] }
+  );
+  return unwrapEnvelope(response, dto.weeklyQuestion);
+};
+
 export const teachingNoteRepository = {
+  askWeeklyQuestion,
   getLessonInfo,
   saveMemo,
   saveLessonInfo,

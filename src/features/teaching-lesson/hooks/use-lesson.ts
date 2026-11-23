@@ -73,3 +73,9 @@ export const useStudentReviewSummaryQuery = (studentId: number) =>
     queryKey: teachingNoteKeys.reviewSummary(studentId),
     queryFn: () => teachingNoteRepository.getStudentReviewSummary(studentId),
   });
+
+export const useWeeklyQuestionMutation = (studyRoomId: number) =>
+  useMutation({
+    mutationFn: (input: { title: string; content: string }) =>
+      teachingNoteRepository.askWeeklyQuestion(studyRoomId, input),
+  });
