@@ -70,6 +70,10 @@ const detail = z.object({
       status: z.string(),
     })
     .nullish(),
+  submittedAnswer: z.string().nullish(),
+  rewardPreview: z
+    .object({ fixExp: z.number(), blankExp: z.number() })
+    .nullish(),
 });
 
 const explanation = z.object({

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -48,6 +48,19 @@ const formatSubmittedAt = (iso: string | undefined) => {
 
 const stuckRequiredMessage = '틀린 문제는 하나는 골라야 N회독에 들어가요.';
 
+const CIRCLED: Record<string, string> = {
+  '1': '①',
+  '2': '②',
+  '3': '③',
+  '4': '④',
+  '5': '⑤',
+};
+
+const ExpTag = ({ exp }: { exp: number | undefined }) =>
+  exp ? (
+    <span className="font-label-heading">+{exp} EXP</span>
+  ) : null;
+
 const Labels = ({ detail }: { detail: SolutionNoteDetail }) => (
   <div className="flex flex-wrap gap-2">
     <span
@@ -66,6 +79,15 @@ const Labels = ({ detail }: { detail: SolutionNoteDetail }) => (
         )}
       >
         {detail.isCorrect ? '맞았어요' : '틀렸어요'}
+      </span>
+    )}
+    {detail.submittedAnswer && (
+      <span
+        className="rounded-pill font-caption-heading min-h-badge-min bg-orange-1 text-orange-10 inline-flex items-center px-3"
+        data-testid="note-submitted-chip"
+      >
+        제출 답 {CIRCLED[detail.submittedAnswer] ?? detail.submittedAnswer} ·
+        해설과 견줘 보기
       </span>
     )}
     {detail.labels.map((label) => (
@@ -222,7 +244,7 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
   const detail = detailQuery.data;
   const reasons = localReasons ?? detail?.stuckReasons ?? [];
 
-  const handleStartFix = async () => {
+  const handleStartFix = async (auto = false) => {
     if (!detail) return;
     const key = `mvph-fix:${solutionNoteId}:${detail.currentVersionNo}`;
     baseStrokesRef.current = [];
@@ -237,14 +259,27 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
         );
         baseStrokesRef.current = previous;
         await savePageStrokes(key, 0, previous);
+      } else if (auto) {
+        return;
       }
     } catch {
+      if (auto) return;
       // 획을 못 받아도 빈 패드에서 고칠 수 있다. PNG 는 위에 그대로 보인다.
     }
     startedAtRef.current = Date.now();
     setPadKey(key);
     setFixing(true);
   };
+
+  // 시안은 처음부터 "수정 가능" 상태다. 저장된 획이 있는 버전은 바로 고칠 수 있게 연다.
+  const autoStartedRef = useRef<number | null>(null);
+  const currentVersionNo = detail?.currentVersionNo;
+  useEffect(() => {
+    if (!detail || fixing || autoStartedRef.current === currentVersionNo) return;
+    autoStartedRef.current = currentVersionNo ?? null;
+    void handleStartFix(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detail, currentVersionNo, fixing]);
 
   const handleSaveFix = async () => {
     if (!detail) return;
@@ -355,6 +390,11 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
           <header className="border-line-line1 flex flex-wrap items-center gap-2 border-b p-card-pad">
             <h2 className="font-headline2-heading text-text-main">내 풀이</h2>
             <span className="font-label-normal text-text-sub1">고치기</span>
+            {fixing && (
+              <span className="rounded-pill font-caption-heading min-h-badge-min bg-gray-1 text-text-main inline-flex items-center px-3">
+                수정 가능
+              </span>
+            )}
             {diffCount > 0 && (
               <span
                 className="font-caption-heading text-orange-10 border-orange-9 rounded-pill ml-auto border px-3 py-1"
@@ -402,11 +442,13 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
           {fixing ? (
             <Button
               size="large"
+              className="gap-2"
               isLoading={reviseMutation.isPending}
               onClick={() => void handleSaveFix()}
               data-testid="note-save-fix"
             >
               고친 풀이 저장
+              <ExpTag exp={detail.rewardPreview?.fixExp} />
             </Button>
           ) : (
             <Button
@@ -427,6 +469,7 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
             <Button
               size="large"
               variant="outlined"
+              className="gap-2"
               onClick={() =>
                 router.push(
                   PRIVATE.DASHBOARD.STUDENT_REVIEW_BLANK(detail.wrongAnswer!.id)
@@ -435,6 +478,7 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
               data-testid="note-to-blank"
             >
               백지에 다시 풀기
+              <ExpTag exp={detail.rewardPreview?.blankExp} />
             </Button>
           )}
         </div>

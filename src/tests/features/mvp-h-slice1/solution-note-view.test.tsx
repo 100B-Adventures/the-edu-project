@@ -54,6 +54,8 @@ const DETAIL = {
     },
   ],
   wrongAnswer: { id: 501, reviewCount: 0, status: 'ACTIVE' },
+  submittedAnswer: '3',
+  rewardPreview: { fixExp: 20, blankExp: 30 },
 };
 
 const EXPLANATION = {
@@ -99,6 +101,31 @@ describe('시험 항목 S21 제출 뒤 두 칸 풀이노트', () => {
       '/student/solution-notes/3/stuck-reasons'
     );
     expect(mocks.put.mock.calls[0]![1]).toEqual({ reasons: ['TOOK_LONG'] });
+  });
+
+  it('S21-6 제출 답 칩과 두 버튼의 예고 EXP 를 서버 값으로 보인다', async () => {
+    renderWithQuery(<SolutionNoteView solutionNoteId={3} />);
+    expect(await screen.findByTestId('note-submitted-chip')).toHaveTextContent(
+      '제출 답 ③'
+    );
+    expect(screen.getByTestId('note-to-blank')).toHaveTextContent('+30 EXP');
+  });
+
+  it('S21-7 거절: 예고 EXP 가 0 이면 버튼에 EXP 를 적지 않는다', async () => {
+    mocks.get.mockImplementation((url: string) => {
+      if (url === '/student/solution-notes/3')
+        return Promise.resolve({
+          ...DETAIL,
+          rewardPreview: { fixExp: 0, blankExp: 0 },
+        });
+      if (url === '/student/solution-notes/3/explanation')
+        return Promise.resolve(EXPLANATION);
+      return Promise.reject(new Error(`unmocked ${url}`));
+    });
+    renderWithQuery(<SolutionNoteView solutionNoteId={3} />);
+    expect(await screen.findByTestId('note-to-blank')).not.toHaveTextContent(
+      'EXP'
+    );
   });
 
   it('S21-3 틀린 문제에서 백지에 다시 풀기를 누르면 백지 화면으로 이동한다', async () => {
