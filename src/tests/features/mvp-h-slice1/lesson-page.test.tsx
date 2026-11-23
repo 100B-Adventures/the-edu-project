@@ -94,7 +94,8 @@ describe('시험 항목 S22 1:1 수업 화면', () => {
     mocks.role.role = 'ROLE_TEACHER';
     mocks.put.mockResolvedValue({});
     renderWithQuery(<LessonPage studyRoomId={4} />);
-    await screen.findByLabelText('정기 수업');
+    await user.type(await screen.findByLabelText('정기 수업'), '화 목');
+    await user.type(screen.getByLabelText('선생님 한마디'), '오답 먼저');
     await user.click(screen.getByTestId('lesson-info-save'));
     await waitFor(() => expect(mocks.put).toHaveBeenCalled());
     expect(mocks.put.mock.calls[0]![0]).toBe(
@@ -104,6 +105,10 @@ describe('시험 항목 S22 1:1 수업 화면', () => {
       weeklyRule: '화 목',
       teacherNote: '오답 먼저',
     });
+    // 선생님에게는 읽기 API 가 없다. 학생용 lesson-info GET 을 부르면 403 이다(스모크에서 발견).
+    expect(
+      mocks.get.mock.calls.some((call) => String(call[0]).includes('/student/'))
+    ).toBe(false);
   });
 
   it('S22-5 선생님이 같이 푼 문제 번호를 넣으면 teaching-notes problems 로 POST 한다', async () => {

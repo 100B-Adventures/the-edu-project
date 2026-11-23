@@ -188,7 +188,7 @@ const StudentLesson = ({ studyRoomId }: LessonPageProps) => {
           testId="lesson-memo"
         >
           <Input
-            aria-label="내 메모"
+            aria-label="메모 입력"
             value={memoValue}
             maxLength={500}
             onChange={(event) => setMemo(event.target.value)}
@@ -207,7 +207,6 @@ const StudentLesson = ({ studyRoomId }: LessonPageProps) => {
 };
 
 const TeacherLesson = ({ studyRoomId }: LessonPageProps) => {
-  const info = useLessonInfoQuery(studyRoomId);
   const notes = useGetTeacherNotesList({
     studyRoomId,
     pageable: LIST_PAGEABLE,
@@ -223,19 +222,16 @@ const TeacherLesson = ({ studyRoomId }: LessonPageProps) => {
   const [attachNoteId, setAttachNoteId] = useState<number | null>(null);
   const noteRows: NoteRow[] = notes.data?.content ?? [];
 
-  const toLocalInput = (iso: string | null | undefined) =>
-    iso ? iso.slice(0, 16) : '';
-
   const handleSave = async () => {
-    const minutesValue = Number(minutes ?? info.data?.nextLesson?.minutes ?? 0);
-    const atValue = nextAt ?? toLocalInput(info.data?.nextLesson?.at);
+    const minutesValue = Number(minutes ?? 0);
+    const atValue = nextAt ?? '';
     try {
       await saveMutation.mutateAsync({
-        weeklyRule: weeklyRule ?? info.data?.weekly ?? '',
+        weeklyRule: weeklyRule ?? '',
         nextLessonAt: atValue ? `${atValue}:00` : null,
         minutes: Number.isFinite(minutesValue) && minutesValue > 0 ? minutesValue : null,
-        mode: info.data?.nextLesson?.mode ?? null,
-        teacherNote: teacherNote ?? info.data?.teacherNote ?? '',
+        mode: null,
+        teacherNote: teacherNote ?? '',
       });
       showBottomToast('수업 정보를 저장했어요.');
     } catch {
@@ -348,46 +344,40 @@ const TeacherLesson = ({ studyRoomId }: LessonPageProps) => {
         title="수업 정보"
         testId="lesson-info"
       >
-        {info.isPending ? (
-          <Skeleton.Block className="h-40 w-full" />
-        ) : (
-          <>
-            <Input
-              aria-label="다음 수업"
-              type="datetime-local"
-              value={nextAt ?? toLocalInput(info.data?.nextLesson?.at)}
-              onChange={(event) => setNextAt(event.target.value)}
-            />
-            <Input
-              aria-label="수업 시간(분)"
-              inputMode="numeric"
-              placeholder="분"
-              value={minutes ?? String(info.data?.nextLesson?.minutes ?? '')}
-              onChange={(event) => setMinutes(event.target.value)}
-            />
-            <Input
-              aria-label="정기 수업"
-              placeholder="예: 화 목 19:00"
-              value={weeklyRule ?? info.data?.weekly ?? ''}
-              maxLength={200}
-              onChange={(event) => setWeeklyRule(event.target.value)}
-            />
-            <Input
-              aria-label="선생님 한마디"
-              placeholder="선생님 한마디"
-              value={teacherNote ?? info.data?.teacherNote ?? ''}
-              maxLength={500}
-              onChange={(event) => setTeacherNote(event.target.value)}
-            />
-            <Button
-              isLoading={saveMutation.isPending}
-              onClick={() => void handleSave()}
-              data-testid="lesson-info-save"
-            >
-              저장
-            </Button>
-          </>
-        )}
+        <Input
+          aria-label="다음 수업"
+          type="datetime-local"
+          value={nextAt ?? ''}
+          onChange={(event) => setNextAt(event.target.value)}
+        />
+        <Input
+          aria-label="수업 시간(분)"
+          inputMode="numeric"
+          placeholder="분"
+          value={minutes ?? ''}
+          onChange={(event) => setMinutes(event.target.value)}
+        />
+        <Input
+          aria-label="정기 수업"
+          placeholder="예: 화 목 19:00"
+          value={weeklyRule ?? ''}
+          maxLength={200}
+          onChange={(event) => setWeeklyRule(event.target.value)}
+        />
+        <Input
+          aria-label="선생님 한마디"
+          placeholder="선생님 한마디"
+          value={teacherNote ?? ''}
+          maxLength={500}
+          onChange={(event) => setTeacherNote(event.target.value)}
+        />
+        <Button
+          isLoading={saveMutation.isPending}
+          onClick={() => void handleSave()}
+          data-testid="lesson-info-save"
+        >
+          저장
+        </Button>
       </Panel>
     </div>
   );
