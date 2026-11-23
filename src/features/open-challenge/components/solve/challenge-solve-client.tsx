@@ -20,7 +20,8 @@ import { BackButton, Button, Dialog, Prompt } from '@/shared/components/ui';
 import { PRIVATE, PUBLIC } from '@/shared/constants';
 import { cn } from '@/shared/lib';
 import { isMvpHSliceEnabled } from '@/shared/lib/mvp-h-slice';
-import { submitSolutionNote } from '@/features/solution-note/submit-solution-note';
+import { HandwritingConsentDialog } from '@/features/solution-note/components/handwriting-consent-dialog';
+import { submitSolutionNoteWithConsent } from '@/features/solution-note/submit-solution-note';
 import { trackOcStart, trackOcSubmit } from '@/shared/lib/analytics';
 import {
   Bot,
@@ -119,6 +120,9 @@ export const ChallengeSolveClient = ({
   const [isQuestionOpen, setIsQuestionOpen] = useState(true);
   const [isInviteContextOpen, setIsInviteContextOpen] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const consentResolverRef = useRef<((agreed: boolean) => void) | null>(null);
+  const [isConsentOpen, setIsConsentOpen] = useState(false);
+  const [isConsentPending, setIsConsentPending] = useState(false);
   const [isEmptyDrawingPromptOpen, setIsEmptyDrawingPromptOpen] =
     useState(false);
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
@@ -406,18 +410,29 @@ export const ChallengeSolveClient = ({
       // 실패하면 기존 결과 화면 흐름으로 이어 가 제출 자체는 막지 않는다.
       if (isMvpHSliceEnabled()) {
         try {
-          const solutionNoteId = await submitSolutionNote({
-            attemptId: Number(attemptId),
-            strokes: drawingStrokes,
-            elapsedSeconds: Math.round(
-              (Date.now() - mountTimeRef.current) / 1000
-            ),
-            idempotencyKey: `sn-${challengeId}-${attemptId}`,
-          });
+          const solutionNoteId = await submitSolutionNoteWithConsent(
+            {
+              attemptId: Number(attemptId),
+              strokes: drawingStrokes,
+              elapsedSeconds: Math.round(
+                (Date.now() - mountTimeRef.current) / 1000
+              ),
+              idempotencyKey: `sn-${challengeId}-${attemptId}`,
+            },
+            () =>
+              new Promise<boolean>((resolve) => {
+                consentResolverRef.current = resolve;
+                setIsConsentOpen(true);
+              })
+          );
+          setIsConsentOpen(false);
+          setIsConsentPending(false);
           router.push(PRIVATE.DASHBOARD.SOLUTION_NOTE(solutionNoteId));
           return;
         } catch {
           // 아래 기존 흐름으로 계속한다.
+          setIsConsentOpen(false);
+          setIsConsentPending(false);
         }
       }
 
@@ -1076,6 +1091,19 @@ export const ChallengeSolveClient = ({
           </Dialog.Body>
         </Dialog.Content>
       </Dialog>
+
+      <HandwritingConsentDialog
+        isOpen={isConsentOpen}
+        isPending={isConsentPending}
+        onAgree={() => {
+          setIsConsentPending(true);
+          consentResolverRef.current?.(true);
+        }}
+        onDecline={() => {
+          setIsConsentOpen(false);
+          consentResolverRef.current?.(false);
+        }}
+      />
 
       <ChallengeHistoryDialog
         challengeId={challengeId}

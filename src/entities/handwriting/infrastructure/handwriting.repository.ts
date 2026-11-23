@@ -171,7 +171,16 @@ const uploadImportPhoto = async (
   return { mediaAssetId: item.id, sha256: await sha256Hex(file) };
 };
 
+/** POST /api/student/consents (백엔드 4차). 같은 상태를 다시 보내도 안전하다. */
+const grantConsent = async (consentType: string) => {
+  await api.private.post('/student/consents', {
+    consentType,
+    granted: true,
+  });
+};
+
 export const handwritingRepository = {
+  grantConsent,
   uploadHandwriting,
   fetchStrokes,
   uploadImportPhoto,
