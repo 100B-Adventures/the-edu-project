@@ -30,9 +30,9 @@ export const StuckReasonChips = ({
   <div
     role="group"
     aria-label="어디서 막혔나요"
-    className="flex flex-wrap items-center gap-2"
+    className="flex items-center gap-2 overflow-x-auto lg:flex-wrap lg:overflow-visible"
   >
-    <span className="font-body2-heading text-text-main">어디서 막혔나요</span>
+    <span className="font-body2-heading text-text-main shrink-0">어디서 막혔나요</span>
     {STUCK_REASON_ORDER.map((code) => {
       const on = selected.includes(code);
       return (
@@ -44,7 +44,7 @@ export const StuckReasonChips = ({
           onClick={() => onToggle(code)}
           data-testid="stuck-chip"
           className={cn(
-            'rounded-pill font-body2-heading min-h-touch-min border px-4',
+            'rounded-pill font-body2-heading min-h-touch-min shrink-0 border px-4',
             on
               ? 'border-orange-9 bg-orange-1 text-orange-10'
               : 'border-line-line2 text-text-main bg-white'

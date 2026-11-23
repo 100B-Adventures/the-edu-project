@@ -50,6 +50,12 @@ const stuckRequiredMessage = '틀린 문제는 하나는 골라야 N회독에 �
 
 const Labels = ({ detail }: { detail: SolutionNoteDetail }) => (
   <div className="flex flex-wrap gap-2">
+    <span
+      className="rounded-pill font-caption-heading min-h-badge-min bg-system-success-alt text-system-success-text inline-flex items-center px-3"
+      data-testid="note-posted-chip"
+    >
+      풀이노트에 올렸어요
+    </span>
     {detail.isCorrect !== null && (
       <span
         className={cn(
@@ -392,7 +398,7 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
             onToggle={(code) => void handleToggleReason(code)}
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 [&>button]:flex-1 lg:[&>button]:flex-none">
           {fixing ? (
             <Button
               size="large"
@@ -420,7 +426,7 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
           {canBlank && detail.wrongAnswer && (
             <Button
               size="large"
-              variant="secondary"
+              variant="outlined"
               onClick={() =>
                 router.push(
                   PRIVATE.DASHBOARD.STUDENT_REVIEW_BLANK(detail.wrongAnswer!.id)
