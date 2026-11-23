@@ -93,6 +93,9 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
   const [result, setResult] = useState<BlankRetryResult | null>(null);
   const startedAtRef = useRef<number>(Date.now());
   const startedRef = useRef(false);
+  // 손글씨 업로드가 끝나기 전에는 mutation 이 아직 pending 이 아니라서, 그 사이 두 번 눌리면 마무리가 두 번 나간다.
+  const submittingRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const item = wrongAnswers.data?.items.find(
     (candidate) => candidate.id === wrongAnswerId
@@ -127,7 +130,9 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
     : selfJudgement === null;
 
   const handleSubmit = async () => {
-    if (sessionId === null || answerMissing) return;
+    if (sessionId === null || answerMissing || submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
     try {
       const handwriting = await handwritingRepository.uploadHandwriting({
         strokes,
@@ -144,6 +149,9 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
     } catch (error) {
       const code = getApiError(error)?.code ?? '';
       showBottomToast(FINISH_ERROR_TEXT[code] ?? '저장하지 못했어요. 다시 시도해 주세요.');
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
   };
 
@@ -268,7 +276,7 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
         <Button
           size="large"
           disabled={answerMissing}
-          isLoading={finishMutation.isPending}
+          isLoading={submitting || finishMutation.isPending}
           onClick={() => void handleSubmit()}
           data-testid="blank-submit"
         >

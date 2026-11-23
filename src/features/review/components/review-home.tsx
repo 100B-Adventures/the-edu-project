@@ -118,7 +118,7 @@ const LevelBar = ({ overview }: { overview: ReviewOverview }) => {
 /** 오늘 퀘스트 카드의 문제 사진. 서버가 항목별 `thumbUrl` 을 준다(D-131). */
 const QuestThumb = ({ url }: { url: string | null | undefined }) => (
   <span
-    className="border-line-line1 relative block aspect-3/4 w-full overflow-hidden sm:aspect-auto sm:h-28 rounded-card border bg-gray-1"
+    className="border-line-line1 relative block aspect-3/4 w-full overflow-hidden wide-phone:aspect-auto wide-phone:h-28 rounded-card border bg-gray-1"
     data-testid="quest-thumb"
   >
     {url && (
@@ -155,7 +155,7 @@ const QuestSection = ({
         오늘 퀘스트가 비었어요.
       </p>
     ) : (
-      <ul className="grid grid-cols-3 gap-2 sm:gap-3">
+      <ul className="grid grid-cols-3 gap-2 wide-phone:gap-3">
         {quest.items.map((item) => {
           const done = item.solvedStatus === 'SOLVED';
           return (
@@ -167,7 +167,7 @@ const QuestSection = ({
                   item.wrongAnswerId !== null && onOpen(item.wrongAnswerId)
                 }
                 data-testid="review-quest-item"
-                className="border-line-line1 rounded-card hover:border-orange-9 flex w-full flex-col items-start gap-2 border bg-white p-2 text-left sm:p-card-pad disabled:opacity-60"
+                className="border-line-line1 rounded-card hover:border-orange-9 flex w-full flex-col items-start gap-2 border bg-white p-2 text-left wide-phone:p-card-pad disabled:opacity-60"
               >
                 <QuestThumb url={item.thumbUrl} />
                 <span className="font-body1-heading text-text-main line-clamp-2 w-full">
@@ -177,13 +177,13 @@ const QuestSection = ({
                   {item.stuckReasonLabel ?? item.reason}
                 </span>
                 {item.dueLabel && (
-                  <span className="font-body2-normal text-text-sub1 hidden sm:inline">
+                  <span className="font-body2-normal text-text-sub1 hidden wide-phone:inline">
                     {item.dueLabel}
                   </span>
                 )}
                 {item.expReward ? (
                   <span
-                    className="font-label-heading text-orange-10 border-orange-9 rounded-pill border px-2 whitespace-nowrap sm:px-3"
+                    className="font-label-heading text-orange-10 border-orange-9 rounded-pill border px-2 whitespace-nowrap wide-phone:px-3"
                     data-testid="quest-item-exp"
                   >
                     +{item.expReward} EXP

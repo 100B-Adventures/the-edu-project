@@ -104,6 +104,35 @@ describe('시험 항목 S23 백지에 다시 풀기', () => {
     });
   });
 
+  it('S23-7 거절: 손글씨 업로드가 끝나기 전에 제출을 연달아 눌러도 마무리는 한 번만 보낸다', async () => {
+    const user = userEvent.setup();
+    let release: (value: unknown) => void = () => {};
+    mocks.upload.mockImplementation(
+      () => new Promise((resolve) => (release = resolve))
+    );
+    renderWithQuery(<BlankRetry wrongAnswerId={501} />);
+    await user.click((await screen.findAllByTestId('blank-choice'))[1]!);
+    await user.dblClick(screen.getByTestId('blank-submit'));
+    expect(mocks.upload).toHaveBeenCalledTimes(1);
+    release({
+      pngMediaId: 1,
+      strokesMediaId: 2,
+      strokesDeferred: false,
+      strokeCount: 3,
+      strokeBytes: 100,
+      strokesSha256: 'a'.repeat(64),
+      pngSha256: 'b'.repeat(64),
+      schemaVersion: 1,
+      layoutWidth: 1024,
+      layoutHeight: 1400,
+    });
+    await waitFor(() => expect(screen.getByTestId('blank-reward')).toBeInTheDocument());
+    const finishes = mocks.post.mock.calls.filter((c) =>
+      String(c[0]).endsWith('/blank-retries')
+    );
+    expect(finishes).toHaveLength(1);
+  });
+
   it('S23-3 답칸이 없는 문제는 맞았어요/틀렸어요를 골라야 제출되고 selectedAnswer 는 null 이다', async () => {
     const user = userEvent.setup();
     mocks.items = [{ id: 501, challengeId: null, title: '교재 12번' }];
