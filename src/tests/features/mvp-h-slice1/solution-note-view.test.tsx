@@ -1,4 +1,7 @@
-import { SolutionNoteView } from '@/features/solution-note/components/solution-note-view';
+import {
+  ExplanationText,
+  SolutionNoteView,
+} from '@/features/solution-note/components/solution-note-view';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -135,5 +138,22 @@ describe('시험 항목 S21 제출 뒤 두 칸 풀이노트', () => {
     expect(
       await screen.findByText('풀이노트를 찾을 수 없어요')
     ).toBeInTheDocument();
+  });
+});
+
+describe('해설 원문 그림 (스모크에서 발견)', () => {
+  it('S12-9 마크다운 이미지는 글자 그대로가 아니라 그림으로 그린다', () => {
+    renderWithQuery(
+      <ExplanationText text={'먼저 보자\n![해설](/mock/4004.png)'} />
+    );
+    const img = screen.getByAltText('해설');
+    expect(img).toHaveAttribute('src', '/mock/4004.png');
+    expect(screen.queryByText(/!\[해설\]/)).not.toBeInTheDocument();
+  });
+
+  it('S12-10 거절: 그림이 없는 글은 그대로 글로만 나온다', () => {
+    renderWithQuery(<ExplanationText text="그냥 글" />);
+    expect(screen.getByText('그냥 글')).toBeInTheDocument();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 });

@@ -90,7 +90,7 @@ const ProblemBand = ({ challengeId }: { challengeId: number | null }) => {
         variant="unstyled"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center justify-between gap-3 text-left"
+        className="flex min-h-11 w-full items-center justify-between gap-3 text-left"
       >
         <span
           className={cn(
@@ -119,6 +119,30 @@ const ProblemBand = ({ challengeId }: { challengeId: number | null }) => {
       )}
     </section>
   );
+};
+
+const IMAGE_MARKDOWN = /!\[([^\]]*)\]\(([^)\s]+)\)/g;
+
+/** 해설 원문의 마크다운 이미지(![설명](주소))는 그림으로, 나머지는 글로 그린다. */
+export const ExplanationText = ({ text }: { text: string }) => {
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  for (const match of text.matchAll(IMAGE_MARKDOWN)) {
+    const index = match.index ?? 0;
+    if (index > last) parts.push(text.slice(last, index));
+    parts.push(
+      // eslint-disable-next-line @next/next/no-img-element -- 해설 이미지는 크기를 알 수 없는 외부 주소
+      <img
+        key={`${index}-${match[2]}`}
+        src={match[2]}
+        alt={match[1] || '해설 그림'}
+        className="my-2 h-auto max-w-full"
+      />
+    );
+    last = index + match[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return <>{parts}</>;
 };
 
 const ExplanationPane = ({ solutionNoteId }: { solutionNoteId: number }) => {
@@ -161,7 +185,7 @@ const ExplanationPane = ({ solutionNoteId }: { solutionNoteId: number }) => {
               {step.no}. {step.tag ?? ''}
             </h3>
             <p className="font-body1-normal text-text-main mt-1 whitespace-pre-wrap">
-              {step.text}
+              <ExplanationText text={step.text} />
             </p>
           </article>
         ))}
@@ -169,7 +193,7 @@ const ExplanationPane = ({ solutionNoteId }: { solutionNoteId: number }) => {
           explanationQuery.data.steps.length === 0 &&
           explanationQuery.data.fullText && (
             <p className="font-body1-normal text-text-main whitespace-pre-wrap">
-              {explanationQuery.data.fullText}
+              <ExplanationText text={explanationQuery.data.fullText} />
             </p>
           )}
       </div>
@@ -309,7 +333,7 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
   return (
     <div className="mx-auto flex w-full max-w-page-max flex-col gap-section-gap p-card-pad pb-48 lg:pb-32">
       <header className="flex flex-wrap items-center gap-3">
-        <BackButton />
+        <BackButton className="min-h-11" />
         <h1 className="font-headline1-heading text-text-main">풀이노트</h1>
         <span className="font-label-normal text-text-sub1">
           {formatSubmittedAt(detail.versions[0]?.createdAt)}
