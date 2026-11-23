@@ -13,6 +13,20 @@ const lessonInfo = z.object({
   myMemo: z.string().nullish(),
 });
 
+const noteProblems = z.object({
+  teachingNoteId: z.number(),
+  problems: z.array(
+    z.object({
+      problemId: z.number(),
+      position: z.number(),
+      challengeId: z.number().nullish(),
+      title: z.string().nullish(),
+      solvedTogether: z.boolean(),
+      memo: z.string().nullish(),
+    })
+  ),
+});
+
 const attachProblem = z.object({
   problemId: z.number(),
   position: z.number(),
@@ -71,6 +85,7 @@ const weeklyQuestion = z.object({
 
 export const dto = {
   lessonInfo,
+  noteProblems,
   attachProblem,
   shareLink,
   shareMeta,

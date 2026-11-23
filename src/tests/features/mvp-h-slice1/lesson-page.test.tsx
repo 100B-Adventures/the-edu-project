@@ -3,7 +3,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { CARD, renderWithQuery } from './helpers';
+import { renderWithQuery } from './helpers';
 
 const mocks = vi.hoisted(() => ({
   get: vi.fn(),
@@ -48,33 +48,38 @@ describe('시험 항목 S22 1:1 수업 화면', () => {
     mocks.role.role = 'ROLE_STUDENT';
     mocks.get.mockImplementation((url: string) => {
       if (url.endsWith('/lesson-info')) return Promise.resolve(LESSON);
-      if (url === '/student/review/cards') {
+      if (url.endsWith('/teaching-notes/7/problems')) {
         return Promise.resolve({
-          items: [
-            CARD,
-            { ...CARD, wrongAnswerId: 502, origin: { kind: 'OPEN' } },
+          teachingNoteId: 7,
+          problems: [
+            {
+              problemId: 1,
+              position: 1,
+              challengeId: 4006,
+              title: '7. 미분',
+              solvedTogether: true,
+              memo: null,
+            },
           ],
-          totalCount: 2,
         });
       }
       return Promise.reject(new Error(`unmocked ${url}`));
     });
   });
 
-  it('S22-1 학생은 수업 정보와 수업 출처 문제만 같이 푼 문제로 본다', async () => {
+  it('S22-1 학생은 수업 정보와 수업노트에 붙은 문제를 같이 푼 문제로 본다', async () => {
     renderWithQuery(<LessonPage studyRoomId={4} />);
     expect(await screen.findByText(/11\/25 19:00/)).toBeInTheDocument();
     expect(await screen.findAllByTestId('lesson-problem')).toHaveLength(1);
+    expect(screen.getByText('7. 미분')).toBeInTheDocument();
     expect(screen.getByText('오답 먼저')).toBeInTheDocument();
   });
 
-  it('S22-2 같이 푼 문제를 누르면 그 문제의 백지 화면으로 이동한다', async () => {
+  it('S22-2 같이 푼 문제를 누르면 그 문제 풀이 화면으로 이동한다', async () => {
     const user = userEvent.setup();
     renderWithQuery(<LessonPage studyRoomId={4} />);
     await user.click((await screen.findAllByTestId('lesson-problem'))[0]!);
-    expect(mocks.push).toHaveBeenCalledWith(
-      '/dashboard/student/review/blank/501'
-    );
+    expect(mocks.push).toHaveBeenCalledWith('/open-challenge/4006');
   });
 
   it('S22-3 내 메모 저장은 lesson-info/memo 로 PUT 한다', async () => {
@@ -94,8 +99,11 @@ describe('시험 항목 S22 1:1 수업 화면', () => {
     mocks.role.role = 'ROLE_TEACHER';
     mocks.put.mockResolvedValue({});
     renderWithQuery(<LessonPage studyRoomId={4} />);
-    await user.type(await screen.findByLabelText('정기 수업'), '화 목');
-    await user.type(screen.getByLabelText('선생님 한마디'), '오답 먼저');
+    // 선생님 읽기 API 로 저장해 둔 값이 입력칸에 미리 채워진다.
+    await waitFor(() =>
+      expect(screen.getByLabelText('정기 수업')).toHaveValue('화 목')
+    );
+    expect(screen.getByLabelText('선생님 한마디')).toHaveValue('오답 먼저');
     await user.click(screen.getByTestId('lesson-info-save'));
     await waitFor(() => expect(mocks.put).toHaveBeenCalled());
     expect(mocks.put.mock.calls[0]![0]).toBe(
@@ -105,7 +113,12 @@ describe('시험 항목 S22 1:1 수업 화면', () => {
       weeklyRule: '화 목',
       teacherNote: '오답 먼저',
     });
-    // 선생님에게는 읽기 API 가 없다. 학생용 lesson-info GET 을 부르면 403 이다(스모크에서 발견).
+    // 선생님은 teacher 읽기 API 를 쓴다. 학생용 lesson-info GET 을 부르면 403 이다(스모크에서 발견).
+    expect(
+      mocks.get.mock.calls.some(
+        (call) => call[0] === '/teacher/study-rooms/4/lesson-info'
+      )
+    ).toBe(true);
     expect(
       mocks.get.mock.calls.some((call) => String(call[0]).includes('/student/'))
     ).toBe(false);

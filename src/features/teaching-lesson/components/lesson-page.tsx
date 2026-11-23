@@ -5,20 +5,21 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-import type { ReviewCard } from '@/entities/wrong-answer';
+import type { NoteProblems } from '@/entities/teaching-note';
 import { useGetStudentNotesList, useGetTeacherNotesList } from '@/features/study-notes/hooks';
 import { Skeleton } from '@/shared/components/loading';
 import { Button, EmptyState, Input, showBottomToast } from '@/shared/components/ui';
-import { PRIVATE } from '@/shared/constants';
+import { PRIVATE, PUBLIC } from '@/shared/constants';
 import { getApiError } from '@/shared/lib';
 import { useRole } from '@/shared/hooks/use-role';
 import { Share2 } from 'lucide-react';
 
 import {
   useAttachProblemMutation,
-  useClassProblemCardsQuery,
   useCreateShareLinkMutation,
   useLessonInfoQuery,
+  useNoteProblemsQueries,
+  useTeacherLessonInfoQuery,
   useSaveLessonInfoMutation,
   useSaveMemoMutation,
   useWeeklyQuestionMutation,
@@ -29,6 +30,9 @@ type LessonPageProps = { studyRoomId: number };
 type NoteRow = { id: number; title: string; taughtAt: string };
 
 const LIST_PAGEABLE = { page: 0, size: 20, sortKey: 'LATEST_EDITED' } as const;
+
+const toLocalInput = (iso: string | null | undefined) =>
+  iso ? iso.slice(0, 16) : '';
 
 const formatDate = (iso: string | null | undefined) => {
   if (!iso) return '';
@@ -66,31 +70,37 @@ const Panel = ({
   </section>
 );
 
-const ProblemCards = ({ cards }: { cards: ReviewCard[] }) => {
+type NoteProblemRow = NoteProblems['problems'][number];
+
+const ProblemList = ({ problems }: { problems: NoteProblemRow[] }) => {
   const router = useRouter();
-  if (cards.length === 0) {
+  if (problems.length === 0) {
     return (
       <p className="font-body2-normal text-text-sub1">같이 푼 문제가 없어요.</p>
     );
   }
   return (
     <ul className="flex flex-col gap-2">
-      {cards.map((card) => (
-        <li key={card.wrongAnswerId}>
+      {problems.map((problem) => (
+        <li key={problem.problemId}>
           <Button
             variant="unstyled"
             data-testid="lesson-problem"
+            disabled={!problem.challengeId}
             onClick={() =>
-              router.push(PRIVATE.DASHBOARD.STUDENT_REVIEW_BLANK(card.wrongAnswerId))
+              problem.challengeId &&
+              router.push(PUBLIC.OPEN_CHALLENGE.DETAIL(problem.challengeId))
             }
             className="border-line-line1 rounded-card hover:border-orange-9 flex min-h-touch-min w-full items-center justify-between gap-3 border px-4 py-3 text-left"
           >
             <span className="font-body1-heading text-text-main truncate">
-              {card.title ?? '문제'}
+              {problem.title ?? '문제'}
             </span>
-            <span className="font-label-heading text-orange-10 shrink-0">
-              {card.reviewCount}/{card.maxReviews}회독
-            </span>
+            {problem.solvedTogether && (
+              <span className="font-label-heading text-orange-10 shrink-0">
+                같이 풂
+              </span>
+            )}
           </Button>
         </li>
       ))}
@@ -104,13 +114,17 @@ const StudentLesson = ({ studyRoomId }: LessonPageProps) => {
     studyRoomId,
     pageable: LIST_PAGEABLE,
   });
-  const cards = useClassProblemCardsQuery(true);
   const memoMutation = useSaveMemoMutation(studyRoomId);
   const [memo, setMemo] = useState<string | null>(null);
   const weeklyMutation = useWeeklyQuestionMutation(studyRoomId);
   const [qTitle, setQTitle] = useState('');
   const [qBody, setQBody] = useState('');
   const noteRows: NoteRow[] = notes.data?.content ?? [];
+  const problemQueries = useNoteProblemsQueries(
+    'student',
+    noteRows.map((note) => note.id)
+  );
+  const problems = problemQueries.flatMap((query) => query.data?.problems ?? []);
   const memoValue = memo ?? info.data?.myMemo ?? '';
   const nextLesson = formatNextLesson(info.data?.nextLesson);
 
@@ -177,10 +191,10 @@ const StudentLesson = ({ studyRoomId }: LessonPageProps) => {
           title="같이 푼 문제"
           testId="lesson-problems"
         >
-          {cards.isPending ? (
+          {notes.isPending || problemQueries.some((query) => query.isPending) ? (
             <Skeleton.Block className="h-24 w-full" />
           ) : (
-            <ProblemCards cards={cards.data ?? []} />
+            <ProblemList problems={problems} />
           )}
         </Panel>
       </div>
@@ -262,6 +276,7 @@ const TeacherLesson = ({ studyRoomId }: LessonPageProps) => {
     pageable: LIST_PAGEABLE,
   });
   const saveMutation = useSaveLessonInfoMutation(studyRoomId);
+  const savedInfo = useTeacherLessonInfoQuery(studyRoomId);
   const shareMutation = useCreateShareLinkMutation();
   const attachMutation = useAttachProblemMutation();
   const [weeklyRule, setWeeklyRule] = useState<string | null>(null);
@@ -271,17 +286,22 @@ const TeacherLesson = ({ studyRoomId }: LessonPageProps) => {
   const [attachId, setAttachId] = useState('');
   const [attachNoteId, setAttachNoteId] = useState<number | null>(null);
   const noteRows: NoteRow[] = notes.data?.content ?? [];
+  const problemQueries = useNoteProblemsQueries(
+    'teacher',
+    noteRows.map((note) => note.id)
+  );
 
+  const saved = savedInfo.data;
   const handleSave = async () => {
-    const minutesValue = Number(minutes ?? 0);
-    const atValue = nextAt ?? '';
+    const minutesValue = Number(minutes ?? saved?.nextLesson?.minutes ?? 0);
+    const atValue = nextAt ?? toLocalInput(saved?.nextLesson?.at);
     try {
       await saveMutation.mutateAsync({
-        weeklyRule: weeklyRule ?? '',
+        weeklyRule: weeklyRule ?? saved?.weekly ?? '',
         nextLessonAt: atValue ? `${atValue}:00` : null,
         minutes: Number.isFinite(minutesValue) && minutesValue > 0 ? minutesValue : null,
-        mode: null,
-        teacherNote: teacherNote ?? '',
+        mode: saved?.nextLesson?.mode ?? null,
+        teacherNote: teacherNote ?? saved?.teacherNote ?? '',
       });
       showBottomToast('수업 정보를 저장했어요.');
     } catch {
@@ -329,7 +349,7 @@ const TeacherLesson = ({ studyRoomId }: LessonPageProps) => {
             <EmptyState title="수업노트가 아직 없어요" />
           ) : (
             <ul className="flex flex-col gap-2">
-              {noteRows.map((note) => (
+              {noteRows.map((note, index) => (
                 <li
                   key={note.id}
                   className="border-line-line1 rounded-card flex flex-wrap items-center gap-3 border px-4 py-3"
@@ -362,6 +382,22 @@ const TeacherLesson = ({ studyRoomId }: LessonPageProps) => {
                     />
                     공유
                   </Button>
+                  {(problemQueries[index]?.data?.problems ?? []).length > 0 && (
+                    <ul
+                      className="w-full"
+                      data-testid="lesson-note-problems"
+                    >
+                      {problemQueries[index]!.data!.problems.map((problem) => (
+                        <li
+                          key={problem.problemId}
+                          className="font-body2-normal text-text-sub1 truncate"
+                        >
+                          {problem.title ?? '문제'}
+                          {problem.solvedTogether ? ' · 같이 풂' : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>
@@ -397,27 +433,27 @@ const TeacherLesson = ({ studyRoomId }: LessonPageProps) => {
         <Input
           aria-label="다음 수업"
           type="datetime-local"
-          value={nextAt ?? ''}
+          value={nextAt ?? toLocalInput(saved?.nextLesson?.at)}
           onChange={(event) => setNextAt(event.target.value)}
         />
         <Input
           aria-label="수업 시간(분)"
           inputMode="numeric"
           placeholder="분"
-          value={minutes ?? ''}
+          value={minutes ?? (saved?.nextLesson?.minutes ? String(saved.nextLesson.minutes) : '')}
           onChange={(event) => setMinutes(event.target.value)}
         />
         <Input
           aria-label="정기 수업"
           placeholder="예: 화 목 19:00"
-          value={weeklyRule ?? ''}
+          value={weeklyRule ?? saved?.weekly ?? ''}
           maxLength={200}
           onChange={(event) => setWeeklyRule(event.target.value)}
         />
         <Input
           aria-label="선생님 한마디"
           placeholder="선생님 한마디"
-          value={teacherNote ?? ''}
+          value={teacherNote ?? saved?.teacherNote ?? ''}
           maxLength={500}
           onChange={(event) => setTeacherNote(event.target.value)}
         />

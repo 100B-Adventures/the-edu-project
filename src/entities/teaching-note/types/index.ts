@@ -9,3 +9,4 @@ export type ShareMeta = z.infer<typeof dto.shareMeta>;
 export type StudentReviewSummary = z.infer<typeof dto.studentReviewSummary>;
 export type AttachProblemPayload = z.infer<typeof payload.attachProblemRequest>;
 export type LessonInfoPayload = z.infer<typeof payload.lessonInfoRequest>;
+export type NoteProblems = z.infer<typeof dto.noteProblems>;

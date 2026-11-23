@@ -15,6 +15,25 @@ const getLessonInfo = async (studyRoomId: number) => {
   return unwrapEnvelope(response, dto.lessonInfo);
 };
 
+/** GET /api/teacher/study-rooms/{id}/lesson-info (백엔드 4차). 선생님이 저장해 둔 값을 불러온다. */
+const getTeacherLessonInfo = async (studyRoomId: number) => {
+  const response = await api.private.get(
+    `/teacher/study-rooms/${studyRoomId}/lesson-info`
+  );
+  return unwrapEnvelope(response, dto.lessonInfo);
+};
+
+/** GET /api/{teacher|student}/teaching-notes/{id}/problems (백엔드 4차). 수업노트에 붙은 같이 푼 문제. */
+const getNoteProblems = async (
+  role: 'student' | 'teacher',
+  teachingNoteId: number
+) => {
+  const response = await api.private.get(
+    `/${role}/teaching-notes/${teachingNoteId}/problems`
+  );
+  return unwrapEnvelope(response, dto.noteProblems);
+};
+
 /** PUT /api/student/study-rooms/{id}/lesson-info/memo (§1.15) */
 const saveMemo = async (studyRoomId: number, body: string) => {
   const response = await api.private.put(
@@ -94,6 +113,8 @@ const askWeeklyQuestion = async (
 export const teachingNoteRepository = {
   askWeeklyQuestion,
   getLessonInfo,
+  getTeacherLessonInfo,
+  getNoteProblems,
   saveMemo,
   saveLessonInfo,
   attachProblem,

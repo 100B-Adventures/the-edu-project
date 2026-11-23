@@ -3,13 +3,30 @@ import {
   teachingNoteRepository,
   type LessonInfoPayload,
 } from '@/entities/teaching-note';
-import { reviewKeys, reviewRepository } from '@/entities/wrong-answer';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export const useLessonInfoQuery = (studyRoomId: number) =>
   useQuery({
     queryKey: teachingNoteKeys.lessonInfo(studyRoomId),
     queryFn: () => teachingNoteRepository.getLessonInfo(studyRoomId),
+  });
+
+export const useTeacherLessonInfoQuery = (studyRoomId: number) =>
+  useQuery({
+    queryKey: teachingNoteKeys.teacherLessonInfo(studyRoomId),
+    queryFn: () => teachingNoteRepository.getTeacherLessonInfo(studyRoomId),
+  });
+
+/** 수업노트별 같이 푼 문제. 노트 id 마다 한 번씩 읽는다. */
+export const useNoteProblemsQueries = (
+  role: 'student' | 'teacher',
+  teachingNoteIds: number[]
+) =>
+  useQueries({
+    queries: teachingNoteIds.map((id) => ({
+      queryKey: teachingNoteKeys.problems(role, id),
+      queryFn: () => teachingNoteRepository.getNoteProblems(role, id),
+    })),
   });
 
 export const useSaveMemoMutation = (studyRoomId: number) => {
@@ -32,25 +49,11 @@ export const useSaveLessonInfoMutation = (studyRoomId: number) => {
       teachingNoteRepository.saveLessonInfo(studyRoomId, input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: teachingNoteKeys.lessonInfo(studyRoomId),
+        queryKey: teachingNoteKeys.teacherLessonInfo(studyRoomId),
       });
     },
   });
 };
-
-/**
- * 같이 푼 문제. 서버에 수업노트별 문제 읽기 API가 없어(build log slice1 미해결 1번)
- * 학생 본인의 N회독 카드 중 출처가 수업(CLASS)인 것만 모은다.
- */
-export const useClassProblemCardsQuery = (enabled: boolean) =>
-  useQuery({
-    queryKey: [...reviewKeys.all, 'class-origin'],
-    queryFn: async () => {
-      const cards = await reviewRepository.getCards({ view: 'curve' });
-      return cards.items.filter((card) => card.origin?.kind === 'CLASS');
-    },
-    enabled,
-  });
 
 export const useCreateShareLinkMutation = () =>
   useMutation({
@@ -58,15 +61,22 @@ export const useCreateShareLinkMutation = () =>
       teachingNoteRepository.createShareLink(teachingNoteId),
   });
 
-export const useAttachProblemMutation = () =>
-  useMutation({
+export const useAttachProblemMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
     mutationFn: (input: { teachingNoteId: number; challengeId: number }) =>
       teachingNoteRepository.attachProblem(input.teachingNoteId, {
         challengeId: input.challengeId,
         solvedTogether: true,
         memo: null,
       }),
+    onSuccess: async (_result, input) => {
+      await queryClient.invalidateQueries({
+        queryKey: teachingNoteKeys.problems('teacher', input.teachingNoteId),
+      });
+    },
   });
+};
 
 export const useStudentReviewSummaryQuery = (studentId: number) =>
   useQuery({
