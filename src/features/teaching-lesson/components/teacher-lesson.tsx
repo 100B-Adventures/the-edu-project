@@ -98,7 +98,7 @@ const ProblemCard = ({ problem }: { problem: NoteProblemRow }) => {
           {problem.challengeId && (
             <Link
               href={PUBLIC.OPEN_CHALLENGE.DETAIL(problem.challengeId)}
-              className="border-line-line2 rounded-pill font-label-heading text-text-main inline-flex min-h-touch-min items-center gap-1.5 border px-3"
+              className="border-line-line2 rounded-pill font-label-heading text-text-main inline-flex min-h-touch-min items-center gap-1.5 whitespace-nowrap border px-3"
             >
               <RotateCcw
                 size={16}
@@ -108,7 +108,7 @@ const ProblemCard = ({ problem }: { problem: NoteProblemRow }) => {
             </Link>
           )}
           {problem.solvedTogether && (
-            <span className="border-orange-9 rounded-pill font-label-heading text-orange-10 inline-flex min-h-touch-min items-center border px-3">
+            <span className="border-orange-9 rounded-pill font-label-heading text-orange-10 inline-flex min-h-touch-min items-center whitespace-nowrap border px-3">
               N회독에 담김
             </span>
           )}
@@ -145,7 +145,7 @@ const DayRow = ({
   const day = formatDay(note.taughtAt);
   return (
     <li
-      className="border-line-line1 grid gap-3 border-b py-section-gap md:grid-cols-[96px_1fr]"
+      className="border-line-line1 grid gap-3 border-b py-section-gap xl:grid-cols-[96px_1fr]"
       data-testid="lesson-day"
     >
       <div>
@@ -181,7 +181,7 @@ const DayRow = ({
           </Link>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="font-body1-heading text-text-main min-w-0 flex-1 truncate">
+          <h3 className="font-body1-heading text-text-main min-w-0 basis-full truncate">
             {note.title}
           </h3>
           <Button
@@ -207,7 +207,7 @@ const DayRow = ({
             <h4 className="font-body2-heading text-text-main mb-2">
               같이 푼 문제
             </h4>
-            <ul className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {problems.map((problem) => (
                 <ProblemCard
                   key={problem.problemId}
@@ -376,7 +376,7 @@ export const TeacherLesson = ({ studyRoomId }: TeacherLessonProps) => {
         </Button>
       </div>
       {firstNoteId !== undefined && <StudentTabs noteId={firstNoteId} />}
-      <div className="grid gap-section-gap lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-section-gap 2xl:grid-cols-[1fr_320px]">
         <section
           aria-label="수업노트"
           data-testid="lesson-notes"
