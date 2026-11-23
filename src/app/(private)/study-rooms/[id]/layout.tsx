@@ -10,6 +10,8 @@ import { StudyNoteGroupContext } from '@/features/study-notes/contexts/study-not
 import { StudyroomSidebar } from '@/features/study-rooms/components/sidebar';
 import { ColumnLayout } from '@/layout/column-layout';
 import { useRole } from '@/shared/hooks/use-role';
+import { isMvpHSliceEnabled } from '@/shared/lib/mvp-h-slice';
+import { cn } from '@/shared/lib';
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -30,6 +32,8 @@ const StudyNoteLayout = ({ children }: LayoutProps) => {
   const isHomeworkRoute = pathSegments.includes('homework');
 
   const isNote = segment === 'note';
+  // 1:1 수업 화면은 좁은 폭에서 방 요약 카드보다 수업 내용이 먼저 보여야 한다.
+  const isLesson = segment === 'lesson' && isMvpHSliceEnabled();
 
   const isEditOrWritePage =
     segment === 'edit' ||
@@ -72,7 +76,12 @@ const StudyNoteLayout = ({ children }: LayoutProps) => {
     >
       <div data-study-room-shell>
         <ColumnLayout className="shell:flex-row shell:px-4 shell:py-4 items-start gap-5">
-          <ColumnLayout.Left className="shell:sticky shell:top-4 shell:w-room-aside">
+          <ColumnLayout.Left
+            className={cn(
+              'shell:sticky shell:top-4 shell:w-room-aside',
+              isLesson && 'max-shell:hidden'
+            )}
+          >
             <StudyroomSidebar
               studyRoomId={studyRoomId}
               segment={segment}
