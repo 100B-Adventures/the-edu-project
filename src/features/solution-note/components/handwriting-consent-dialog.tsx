@@ -24,7 +24,7 @@ export const HandwritingConsentDialog = ({
     onOpenChange={(open) => !open && !isPending && onDecline()}
   >
     <Dialog.Content
-      className="max-w-dialog-sm gap-4 p-card-pad"
+      className="max-w-dialog-sm p-card-pad gap-4"
       data-testid="consent-dialog"
     >
       <Dialog.Header>

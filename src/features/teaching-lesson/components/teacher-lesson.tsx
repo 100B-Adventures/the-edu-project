@@ -70,9 +70,13 @@ const extractPhotoUrls = (content: string | undefined): string[] => {
 };
 
 const ProblemCard = ({ problem }: { problem: NoteProblemRow }) => {
-  const detail = useOpenChallengeDetailQuery(String(problem.challengeId ?? ''), {
-    enabled: problem.challengeId !== null && problem.challengeId !== undefined,
-  });
+  const detail = useOpenChallengeDetailQuery(
+    String(problem.challengeId ?? ''),
+    {
+      enabled:
+        problem.challengeId !== null && problem.challengeId !== undefined,
+    }
+  );
   const photo = detail.data?.questionImageUrl ?? null;
   return (
     <li
@@ -98,7 +102,7 @@ const ProblemCard = ({ problem }: { problem: NoteProblemRow }) => {
           {problem.challengeId && (
             <Link
               href={PUBLIC.OPEN_CHALLENGE.DETAIL(problem.challengeId)}
-              className="border-line-line2 rounded-pill font-label-heading text-text-main inline-flex min-h-touch-min items-center gap-1.5 whitespace-nowrap border px-3"
+              className="border-line-line2 rounded-pill font-label-heading text-text-main min-h-touch-min inline-flex items-center gap-1.5 border px-3 whitespace-nowrap"
             >
               <RotateCcw
                 size={16}
@@ -108,7 +112,7 @@ const ProblemCard = ({ problem }: { problem: NoteProblemRow }) => {
             </Link>
           )}
           {problem.solvedTogether && (
-            <span className="border-orange-9 rounded-pill font-label-heading text-orange-10 inline-flex min-h-touch-min items-center whitespace-nowrap border px-3">
+            <span className="border-orange-9 rounded-pill font-label-heading text-orange-10 min-h-touch-min inline-flex items-center border px-3 whitespace-nowrap">
               N회독에 담김
             </span>
           )}
@@ -145,7 +149,7 @@ const DayRow = ({
   const day = formatDay(note.taughtAt);
   return (
     <li
-      className="border-line-line1 grid gap-3 border-b py-section-gap xl:grid-cols-[96px_1fr]"
+      className="border-line-line1 py-section-gap grid gap-3 border-b xl:grid-cols-[96px_1fr]"
       data-testid="lesson-day"
     >
       <div>
@@ -157,7 +161,7 @@ const DayRow = ({
           {shown.map((url) => (
             <span
               key={url}
-              className="border-line-line1 bg-gray-1 relative block h-28 overflow-hidden rounded-card border"
+              className="border-line-line1 bg-gray-1 rounded-card relative block h-28 overflow-hidden border"
             >
               <Image
                 src={url}
@@ -250,8 +254,8 @@ const StudentTabs = ({ noteId }: { noteId: number }) => {
           aria-current={index === 0 ? 'true' : undefined}
           className={
             index === 0
-              ? 'border-orange-9 rounded-pill font-body2-heading text-text-main inline-flex min-h-touch-min items-center border-2 bg-white px-4'
-              : 'border-line-line2 rounded-pill font-body2-heading text-text-main inline-flex min-h-touch-min items-center border bg-white px-4'
+              ? 'border-orange-9 rounded-pill font-body2-heading text-text-main min-h-touch-min inline-flex items-center border-2 bg-white px-4'
+              : 'border-line-line2 rounded-pill font-body2-heading text-text-main min-h-touch-min inline-flex items-center border bg-white px-4'
           }
         >
           {student.studentName}
@@ -338,7 +342,7 @@ export const TeacherLesson = ({ studyRoomId }: TeacherLessonProps) => {
   };
 
   return (
-    <div className="flex flex-col gap-section-gap">
+    <div className="gap-section-gap flex flex-col">
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="font-headline1-heading text-text-main mr-auto">
           1:1 수업
@@ -376,7 +380,7 @@ export const TeacherLesson = ({ studyRoomId }: TeacherLessonProps) => {
         </Button>
       </div>
       {firstNoteId !== undefined && <StudentTabs noteId={firstNoteId} />}
-      <div className="grid gap-section-gap 2xl:grid-cols-[1fr_320px]">
+      <div className="gap-section-gap grid 2xl:grid-cols-[1fr_320px]">
         <section
           aria-label="수업노트"
           data-testid="lesson-notes"
@@ -403,12 +407,12 @@ export const TeacherLesson = ({ studyRoomId }: TeacherLessonProps) => {
             </ul>
           )}
         </section>
-        <aside className="flex flex-col gap-section-gap">
+        <aside className="gap-section-gap flex flex-col">
           {attachNoteId !== null && (
             <section
               aria-label="같이 푼 문제 넣기"
               data-testid="lesson-attach"
-              className="border-line-line1 rounded-card flex flex-col gap-3 border bg-white p-card-pad"
+              className="border-line-line1 rounded-card p-card-pad flex flex-col gap-3 border bg-white"
             >
               <h2 className="font-headline2-heading text-text-main">
                 같이 푼 문제 넣기
@@ -433,7 +437,7 @@ export const TeacherLesson = ({ studyRoomId }: TeacherLessonProps) => {
           <section
             aria-label="수업 정보"
             data-testid="lesson-info"
-            className="border-line-line1 rounded-card flex flex-col gap-3 border bg-white p-card-pad"
+            className="border-line-line1 rounded-card p-card-pad flex flex-col gap-3 border bg-white"
           >
             <h2 className="font-headline2-heading text-text-main">수업 정보</h2>
             <Input

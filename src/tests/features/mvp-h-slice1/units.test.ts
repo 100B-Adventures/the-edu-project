@@ -8,6 +8,10 @@ import type { Stroke } from '@/shared/components/drawing';
 import { AxiosError } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next/headers', () => ({
+  cookies: async () => ({ getAll: () => [] }),
+}));
+
 const mocks = vi.hoisted(() => ({
   upload: vi.fn(),
   create: vi.fn(),
@@ -52,20 +56,26 @@ describe('시험 항목 S19 손글씨 저장과 고친 곳 계산', () => {
   });
 });
 
+const ensureOk = vi.fn().mockResolvedValue(true);
+
 describe('시험 항목 S20 제출 뒤 풀이노트 만들기', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    ensureOk.mockResolvedValue(true);
     mocks.upload.mockResolvedValue({ pngMediaId: 1 });
   });
 
   it('S20-1 손글씨를 올린 뒤 시도 번호와 멱등키로 풀이노트를 만들고 id 를 돌려준다', async () => {
     mocks.create.mockResolvedValue({ solutionNoteId: 9 });
-    const id = await submitSolutionNote({
-      attemptId: 21,
-      strokes: [stroke('a', [0.2])],
-      elapsedSeconds: 40,
-      idempotencyKey: 'k1',
-    });
+    const id = await submitSolutionNote(
+      {
+        attemptId: 21,
+        strokes: [stroke('a', [0.2])],
+        elapsedSeconds: 40,
+        idempotencyKey: 'k1',
+      },
+      ensureOk
+    );
     expect(id).toBe(9);
     expect(mocks.create).toHaveBeenCalledWith(
       expect.objectContaining({ challengeAttemptId: 21, confirmEmpty: false }),
@@ -75,44 +85,76 @@ describe('시험 항목 S20 제출 뒤 풀이노트 만들기', () => {
 
   it('S20-2 빈 제출은 confirmEmpty 를 켜서 보낸다', async () => {
     mocks.create.mockResolvedValue({ solutionNoteId: 10 });
-    await submitSolutionNote({
-      attemptId: 21,
-      strokes: [],
-      elapsedSeconds: 1,
-      idempotencyKey: 'k2',
-    });
-    expect(mocks.create.mock.calls[0]![0].confirmEmpty).toBe(true);
-  });
-
-  it('S20-3 이미 만든 노트(409 SOLUTION_NOTE_ALREADY_EXISTS)는 에러 데이터의 id 로 이어 간다', async () => {
-    const error = new AxiosError('conflict');
-    error.response = {
-      status: 409,
-      data: {
-        code: 'SOLUTION_NOTE_ALREADY_EXISTS',
-        data: { solutionNoteId: 5 },
-      },
-    } as AxiosError['response'];
-    mocks.create.mockRejectedValue(error);
-    await expect(
-      submitSolutionNote({
+    await submitSolutionNote(
+      {
         attemptId: 21,
         strokes: [],
         elapsedSeconds: 1,
-        idempotencyKey: 'k3',
-      })
+        idempotencyKey: 'k2',
+      },
+      ensureOk
+    );
+    expect(mocks.create.mock.calls[0]![0].confirmEmpty).toBe(true);
+  });
+
+  it('S20-3 이미 만든 노트(409 SOLUTION_NOTE_ALREADY_EXISTS)는 BFF 를 지난 응답의 data id 로 이어 간다', async () => {
+    // 실제 BFF 라우트를 거친 응답 본문을 axios 오류에 실어 보낸다(BFF 가 data 를 지우면 이 시험이 실패한다).
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              code: 'SOLUTION_NOTE_ALREADY_EXISTS',
+              message: '이미 있어요',
+              data: { solutionNoteId: 5 },
+            }),
+            { status: 409, headers: { 'Content-Type': 'application/json' } }
+          )
+      )
+    );
+    const route = await import('@/app/api/v1/[...path]/route');
+    const { NextRequest } = await import('next/server');
+    const bff = await route.POST(
+      new NextRequest('https://dev.d-edu.site/api/v1/student/solution-notes', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': 'k3' },
+        body: '{}',
+      }),
+      { params: Promise.resolve({ path: ['student', 'solution-notes'] }) }
+    );
+    const error = new AxiosError('conflict');
+    error.response = {
+      status: bff.status,
+      data: await bff.json(),
+    } as AxiosError['response'];
+    mocks.create.mockRejectedValue(error);
+    await expect(
+      submitSolutionNote(
+        {
+          attemptId: 21,
+          strokes: [],
+          elapsedSeconds: 1,
+          idempotencyKey: 'k3',
+        },
+        ensureOk
+      )
     ).resolves.toBe(5);
+    vi.unstubAllGlobals();
   });
 
   it('S20-4 다른 오류는 그대로 던져 호출한 쪽이 기존 결과 화면으로 이어 가게 한다', async () => {
     mocks.create.mockRejectedValue(new Error('500'));
     await expect(
-      submitSolutionNote({
-        attemptId: 21,
-        strokes: [],
-        elapsedSeconds: 1,
-        idempotencyKey: 'k4',
-      })
+      submitSolutionNote(
+        {
+          attemptId: 21,
+          strokes: [],
+          elapsedSeconds: 1,
+          idempotencyKey: 'k4',
+        },
+        ensureOk
+      )
     ).rejects.toThrow('500');
   });
 });

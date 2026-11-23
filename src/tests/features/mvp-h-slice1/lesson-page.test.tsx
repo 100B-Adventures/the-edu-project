@@ -169,8 +169,13 @@ describe('시험 항목 S22 1:1 수업 화면', () => {
     await user.type(screen.getByLabelText('질문 내용'), '왜 그런가요');
     await user.click(screen.getByTestId('lesson-weekly-send'));
     await waitFor(() => expect(mocks.post).toHaveBeenCalled());
-    expect(mocks.post.mock.calls[0]![0]).toBe('/student/study-rooms/4/weekly-question');
-    expect(mocks.post.mock.calls[0]![1]).toMatchObject({ title: '합 공식', content: '왜 그런가요' });
+    expect(mocks.post.mock.calls[0]![0]).toBe(
+      '/student/study-rooms/4/weekly-question'
+    );
+    expect(mocks.post.mock.calls[0]![1]).toMatchObject({
+      title: '합 공식',
+      content: '왜 그런가요',
+    });
   });
 
   it('S22-7 거절: 제목이 비면 보내기 버튼이 눌리지 않는다', async () => {

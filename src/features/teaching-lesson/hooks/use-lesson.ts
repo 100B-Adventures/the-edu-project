@@ -1,9 +1,14 @@
 import {
+  type LessonInfoPayload,
   teachingNoteKeys,
   teachingNoteRepository,
-  type LessonInfoPayload,
 } from '@/entities/teaching-note';
-import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 export const useLessonInfoQuery = (studyRoomId: number) =>
   useQuery({

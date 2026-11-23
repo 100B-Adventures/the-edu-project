@@ -13,6 +13,18 @@ const mocks = vi.hoisted(() => ({
   put: vi.fn(),
   post: vi.fn(),
   push: vi.fn(),
+  getConsent: vi.fn(),
+  grant: vi.fn(),
+  upload: vi.fn(),
+}));
+
+vi.mock('@/entities/handwriting', () => ({
+  handwritingRepository: {
+    getConsent: mocks.getConsent,
+    grantConsent: mocks.grant,
+    uploadHandwriting: mocks.upload,
+    fetchStrokes: vi.fn(),
+  },
 }));
 
 vi.mock('@/shared/api', () => ({
@@ -67,6 +79,8 @@ const EXPLANATION = {
 describe('시험 항목 S21 제출 뒤 두 칸 풀이노트', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getConsent.mockResolvedValue({ granted: true });
+    mocks.grant.mockResolvedValue(undefined);
     mocks.get.mockImplementation((url: string) => {
       if (url === '/student/solution-notes/3') return Promise.resolve(DETAIL);
       if (url === '/student/solution-notes/3/explanation')
@@ -159,6 +173,70 @@ describe('시험 항목 S21 제출 뒤 두 칸 풀이노트', () => {
     expect(screen.getByTestId('pad')).toBeInTheDocument();
   });
 
+  const openFixing = async () => {
+    const user = userEvent.setup();
+    mocks.get.mockImplementation((url: string) => {
+      if (url === '/student/solution-notes/3') return Promise.resolve(DETAIL);
+      if (url === '/student/solution-notes/3/explanation')
+        return Promise.resolve(EXPLANATION);
+      if (url.endsWith('/versions/1'))
+        return Promise.resolve({
+          versionNo: 1,
+          kind: 'SUBMITTED',
+          pngUrl: null,
+          strokesUrl: null,
+          diffMarks: [],
+        });
+      return Promise.reject(new Error(`unmocked ${url}`));
+    });
+    renderWithQuery(<SolutionNoteView solutionNoteId={3} />);
+    await user.click(await screen.findByTestId('note-start-fix'));
+    await screen.findByTestId('note-save-fix');
+    return user;
+  };
+  const revisions = () =>
+    mocks.post.mock.calls.filter((c) => String(c[0]).endsWith('/revisions'));
+
+  it('S21-8 거절: 동의가 없고 나중에 를 누르면 손글씨를 올리지도 저장을 보내지도 않는다', async () => {
+    mocks.getConsent.mockResolvedValue({ granted: false });
+    const user = await openFixing();
+    await user.click(screen.getByTestId('note-save-fix'));
+    await user.click(await screen.findByTestId('consent-decline'));
+    await waitFor(() =>
+      expect(screen.queryByTestId('consent-dialog')).not.toBeInTheDocument()
+    );
+    expect(mocks.upload).not.toHaveBeenCalled();
+    expect(revisions()).toHaveLength(0);
+  });
+
+  it('S21-9 거절: 업로드가 끝나기 전 저장을 연달아 눌러도 저장 요청은 한 번만 나간다', async () => {
+    let release: (value: unknown) => void = () => {};
+    mocks.upload.mockImplementation(
+      () => new Promise((resolve) => (release = resolve))
+    );
+    mocks.post.mockResolvedValue({
+      versionNo: 2,
+      reward: { granted: false, reason: 'ALREADY_REWARDED_TODAY' },
+    });
+    const user = await openFixing();
+    await user.dblClick(screen.getByTestId('note-save-fix'));
+    await waitFor(() => expect(mocks.upload).toHaveBeenCalledTimes(1));
+    release({
+      pngMediaId: 1,
+      strokesMediaId: 2,
+      strokesDeferred: false,
+      strokeCount: 3,
+      strokeBytes: 100,
+      strokesSha256: 'a'.repeat(64),
+      pngSha256: 'b'.repeat(64),
+      schemaVersion: 1,
+      layoutWidth: 1024,
+      layoutHeight: 1400,
+    });
+    await waitFor(() => expect(revisions()).toHaveLength(1));
+    expect(mocks.upload).toHaveBeenCalledTimes(1);
+  });
+
   it('S21-5 풀이노트를 못 찾으면 오류 상태를 보이고 다시 시도 버튼이 있다', async () => {
     mocks.get.mockRejectedValue(new Error('404'));
     renderWithQuery(<SolutionNoteView solutionNoteId={3} />);
@@ -176,6 +254,15 @@ describe('해설 원문 그림 (스모크에서 발견)', () => {
     const img = screen.getByAltText('해설');
     expect(img).toHaveAttribute('src', '/mock/4004.png');
     expect(screen.queryByText(/!\[해설\]/)).not.toBeInTheDocument();
+  });
+
+  it('S12-11 거절: http(s)·사이트 경로가 아닌 그림 주소(javascript, data)는 그리지 않고 글자로 둔다', () => {
+    const { container } = renderWithQuery(
+      <ExplanationText
+        text={'![x](javascript:alert(1)) ![y](data:text/html;base64,AAA)'}
+      />
+    );
+    expect(container.querySelectorAll('img')).toHaveLength(0);
   });
 
   it('S12-10 거절: 그림이 없는 글은 그대로 글로만 나온다', () => {

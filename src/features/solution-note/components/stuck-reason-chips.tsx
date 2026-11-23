@@ -32,7 +32,9 @@ export const StuckReasonChips = ({
     aria-label="어디서 막혔나요"
     className="flex items-center gap-2 overflow-x-auto lg:flex-wrap lg:overflow-visible"
   >
-    <span className="font-body2-heading text-text-main shrink-0">어디서 막혔나요</span>
+    <span className="font-body2-heading text-text-main shrink-0">
+      어디서 막혔나요
+    </span>
     {STUCK_REASON_ORDER.map((code) => {
       const on = selected.includes(code);
       return (

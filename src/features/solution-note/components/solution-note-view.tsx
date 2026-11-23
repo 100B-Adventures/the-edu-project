@@ -7,15 +7,21 @@ import { useRouter } from 'next/navigation';
 
 import { handwritingRepository } from '@/entities/handwriting';
 import {
-  solutionNoteRepository,
   type SolutionNoteDetail,
+  solutionNoteRepository,
 } from '@/entities/solution-note';
 import { reviewRepository } from '@/entities/wrong-answer';
 import { useOpenChallengeDetailQuery } from '@/features/open-challenge/hooks/use-open-challenge';
-import { Skeleton } from '@/shared/components/loading';
+import { useHandwritingConsent } from '@/features/solution-note/use-handwriting-consent';
 import { SolutionDrawingPad, type Stroke } from '@/shared/components/drawing';
 import { savePageStrokes } from '@/shared/components/drawing/model/drawing-storage';
-import { BackButton, Button, EmptyState, showBottomToast } from '@/shared/components/ui';
+import { Skeleton } from '@/shared/components/loading';
+import {
+  BackButton,
+  Button,
+  EmptyState,
+  showBottomToast,
+} from '@/shared/components/ui';
 import { PRIVATE } from '@/shared/constants';
 import { cn } from '@/shared/lib';
 import { getApiError } from '@/shared/lib';
@@ -57,9 +63,7 @@ const CIRCLED: Record<string, string> = {
 };
 
 const ExpTag = ({ exp }: { exp: number | undefined }) =>
-  exp ? (
-    <span className="font-label-heading">+{exp} EXP</span>
-  ) : null;
+  exp ? <span className="font-label-heading">+{exp} EXP</span> : null;
 
 const Labels = ({ detail }: { detail: SolutionNoteDetail }) => (
   <div className="flex flex-wrap gap-2">
@@ -112,7 +116,7 @@ const ProblemBand = ({ challengeId }: { challengeId: number | null }) => {
   return (
     <section
       aria-label="문제"
-      className="border-line-line1 rounded-card border bg-white p-card-pad"
+      className="border-line-line1 rounded-card p-card-pad border bg-white"
     >
       <Button
         variant="unstyled"
@@ -158,6 +162,12 @@ export const ExplanationText = ({ text }: { text: string }) => {
   for (const match of text.matchAll(IMAGE_MARKDOWN)) {
     const index = match.index ?? 0;
     if (index > last) parts.push(text.slice(last, index));
+    // 그림 주소는 http(s) 나 사이트 안 경로만 그린다. 그 밖의 스킴은 글자 그대로 둔다(N-10).
+    if (!/^(https?:\/\/|\/(?!\/))/i.test(match[2] ?? '')) {
+      parts.push(match[0]);
+      last = index + match[0].length;
+      continue;
+    }
     parts.push(
       // eslint-disable-next-line @next/next/no-img-element -- 해설 이미지는 크기를 알 수 없는 외부 주소
       <img
@@ -180,7 +190,7 @@ const ExplanationPane = ({ solutionNoteId }: { solutionNoteId: number }) => {
       aria-label="해설"
       className="border-line-line1 rounded-card flex min-w-0 flex-col border bg-white"
     >
-      <header className="border-line-line1 flex items-center gap-2 border-b p-card-pad">
+      <header className="border-line-line1 p-card-pad flex items-center gap-2 border-b">
         <h2 className="font-headline2-heading text-text-main">해설</h2>
         {explanationQuery.data && explanationQuery.data.cost.points > 0 && (
           <span className="font-caption-heading text-orange-10 bg-orange-1 rounded-pill px-3 py-1">
@@ -188,8 +198,10 @@ const ExplanationPane = ({ solutionNoteId }: { solutionNoteId: number }) => {
           </span>
         )}
       </header>
-      <div className="flex flex-col gap-3 p-card-pad">
-        {explanationQuery.isPending && <Skeleton.Block className="h-40 w-full" />}
+      <div className="p-card-pad flex flex-col gap-3">
+        {explanationQuery.isPending && (
+          <Skeleton.Block className="h-40 w-full" />
+        )}
         {explanationQuery.isError && (
           <EmptyState
             title="해설을 불러오지 못했어요"
@@ -207,7 +219,7 @@ const ExplanationPane = ({ solutionNoteId }: { solutionNoteId: number }) => {
           <article
             key={step.no}
             data-testid="explanation-step"
-            className="border-line-line1 rounded-card border p-card-pad"
+            className="border-line-line1 rounded-card p-card-pad border"
           >
             <h3 className="font-body1-heading text-text-main">
               {step.no}. {step.tag ?? ''}
@@ -235,6 +247,9 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
   const reviseMutation = useReviseSolutionNoteMutation(solutionNoteId);
   const stuckMutation = useSaveStuckReasonsMutation(solutionNoteId);
   const [fixing, setFixing] = useState(false);
+  const { ensureConsent, consentDialog } = useHandwritingConsent();
+  const savingRef = useRef(false);
+  const [saving, setSaving] = useState(false);
   const [padKey, setPadKey] = useState<string | undefined>(undefined);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const baseStrokesRef = useRef<Stroke[]>([]);
@@ -275,29 +290,52 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
   const autoStartedRef = useRef<number | null>(null);
   const currentVersionNo = detail?.currentVersionNo;
   useEffect(() => {
-    if (!detail || fixing || autoStartedRef.current === currentVersionNo) return;
+    if (!detail || fixing || autoStartedRef.current === currentVersionNo)
+      return;
     autoStartedRef.current = currentVersionNo ?? null;
     void handleStartFix(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail, currentVersionNo, fixing]);
 
   const handleSaveFix = async () => {
-    if (!detail) return;
+    if (!detail || savingRef.current) return;
+    // 업로드가 끝나기 전에는 mutation 이 pending 이 아니라서, 그 구간까지 직접 막는다.
+    savingRef.current = true;
+    setSaving(true);
     try {
+      // 동의 확인이 업로드보다 먼저다(D-128). 동의하지 않으면 올리지 않고 멈춘다.
+      if (!(await ensureConsent())) {
+        showBottomToast('손글씨 저장에 동의해야 고친 풀이를 저장할 수 있어요.');
+        return;
+      }
       const handwriting = await handwritingRepository.uploadHandwriting({
         strokes,
       });
-      const saved = await reviseMutation.mutateAsync({
+      const revisePayload = {
         handwriting,
         diffMarks: computeDiffMarks(baseStrokesRef.current, strokes),
         elapsedSeconds: Math.round((Date.now() - startedAtRef.current) / 1000),
         baseVersionNo: detail.currentVersionNo,
-      });
+      };
+      let saved;
+      try {
+        saved = await reviseMutation.mutateAsync(revisePayload);
+      } catch (error) {
+        if (getApiError(error)?.code !== 'CONSENT_REQUIRED') throw error;
+        if (!(await ensureConsent(true))) {
+          showBottomToast(
+            '손글씨 저장에 동의해야 고친 풀이를 저장할 수 있어요.'
+          );
+          return;
+        }
+        saved = await reviseMutation.mutateAsync(revisePayload);
+      }
       if (saved.reward.granted) {
         showBottomToast(`+${saved.reward.exp ?? 0} EXP`);
       } else {
         showBottomToast(
-          REVISE_REASON_TEXT[saved.reward.reason ?? ''] ?? '고친 풀이를 저장했어요.'
+          REVISE_REASON_TEXT[saved.reward.reason ?? ''] ??
+            '고친 풀이를 저장했어요.'
         );
       }
       setFixing(false);
@@ -310,6 +348,9 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
         return;
       }
       showBottomToast('저장하지 못했어요. 다시 시도해 주세요.');
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   };
 
@@ -341,14 +382,14 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
 
   if (detailQuery.isPending) {
     return (
-      <div className="mx-auto w-full max-w-page-max p-card-pad">
+      <div className="max-w-page-max p-card-pad mx-auto w-full">
         <Skeleton.Block className="h-96 w-full" />
       </div>
     );
   }
   if (detailQuery.isError || !detail) {
     return (
-      <div className="mx-auto w-full max-w-page-max p-card-pad">
+      <div className="max-w-page-max p-card-pad mx-auto w-full">
         <EmptyState
           title="풀이노트를 찾을 수 없어요"
           action={
@@ -372,7 +413,7 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
     detail.isCorrect === false && detail.wrongAnswer?.status === 'ACTIVE';
 
   return (
-    <div className="mx-auto flex w-full max-w-page-max flex-col gap-section-gap p-card-pad pb-48 lg:pb-32">
+    <div className="max-w-page-max gap-section-gap p-card-pad mx-auto flex w-full flex-col pb-48 lg:pb-32">
       <header className="flex flex-wrap items-center gap-3">
         <BackButton className="min-h-11" />
         <h1 className="font-headline1-heading text-text-main">풀이노트</h1>
@@ -382,12 +423,12 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
         <Labels detail={detail} />
       </header>
       <ProblemBand challengeId={detail.challengeId} />
-      <div className="grid min-w-0 gap-section-gap lg:grid-cols-2">
+      <div className="gap-section-gap grid min-w-0 lg:grid-cols-2">
         <section
           aria-label="내 풀이"
           className="border-line-line1 rounded-card flex min-w-0 flex-col border bg-white"
         >
-          <header className="border-line-line1 flex flex-wrap items-center gap-2 border-b p-card-pad">
+          <header className="border-line-line1 p-card-pad flex flex-wrap items-center gap-2 border-b">
             <h2 className="font-headline2-heading text-text-main">내 풀이</h2>
             <span className="font-label-normal text-text-sub1">고치기</span>
             {fixing && (
@@ -430,7 +471,7 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
         </section>
         <ExplanationPane solutionNoteId={solutionNoteId} />
       </div>
-      <div className="border-line-line1 fixed right-0 bottom-control-xl left-0 z-(--z-layer-chrome) flex flex-col gap-3 border-t bg-white p-3 lg:bottom-0 lg:left-(--spacing-sidebar-width) lg:flex-row lg:items-center">
+      <div className="border-line-line1 bottom-control-xl fixed right-0 left-0 z-(--z-layer-chrome) flex flex-col gap-3 border-t bg-white p-3 lg:bottom-0 lg:left-(--spacing-sidebar-width) lg:flex-row lg:items-center">
         <div className="min-w-0 lg:flex-1">
           <StuckReasonChips
             selected={reasons}
@@ -443,7 +484,7 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
             <Button
               size="large"
               className="h-auto flex-col gap-0 py-2 lg:flex-row lg:gap-2"
-              isLoading={reviseMutation.isPending}
+              isLoading={saving || reviseMutation.isPending}
               onClick={() => void handleSaveFix()}
               data-testid="note-save-fix"
             >
@@ -483,6 +524,7 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
           )}
         </div>
       </div>
+      {consentDialog}
     </div>
   );
 };

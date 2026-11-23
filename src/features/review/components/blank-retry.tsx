@@ -9,12 +9,15 @@ import { handwritingRepository } from '@/entities/handwriting';
 import type { BlankRetryResult } from '@/entities/wrong-answer';
 import { useWrongAnswersQuery } from '@/features/dashboard/hooks/use-wrong-answer-query';
 import { useOpenChallengeDetailQuery } from '@/features/open-challenge/hooks/use-open-challenge';
+import { useHandwritingConsent } from '@/features/solution-note/use-handwriting-consent';
+import { SolutionDrawingPad, type Stroke } from '@/shared/components/drawing';
 import { Skeleton } from '@/shared/components/loading';
 import {
-  SolutionDrawingPad,
-  type Stroke,
-} from '@/shared/components/drawing';
-import { Button, EmptyState, Input, showBottomToast } from '@/shared/components/ui';
+  Button,
+  EmptyState,
+  Input,
+  showBottomToast,
+} from '@/shared/components/ui';
 import { PRIVATE } from '@/shared/constants';
 import { cn } from '@/shared/lib';
 import { getApiError } from '@/shared/lib';
@@ -49,7 +52,7 @@ const ResultPanel = ({ result }: { result: BlankRetryResult }) => {
   return (
     <section
       aria-label="백지 결과"
-      className="border-orange-9 rounded-section flex flex-col gap-3 border-2 bg-white p-card-pad"
+      className="border-orange-9 rounded-section p-card-pad flex flex-col gap-3 border-2 bg-white"
       data-testid="blank-result"
     >
       <h2 className="font-headline2-heading text-text-main">
@@ -87,13 +90,14 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
   const [startError, setStartError] = useState<string | null>(null);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [selectedAnswer, setSelectedAnswer] = useState('');
-  const [selfJudgement, setSelfJudgement] = useState<'CORRECT' | 'WRONG' | null>(
-    null
-  );
+  const [selfJudgement, setSelfJudgement] = useState<
+    'CORRECT' | 'WRONG' | null
+  >(null);
   const [result, setResult] = useState<BlankRetryResult | null>(null);
   const startedAtRef = useRef<number>(Date.now());
   const startedRef = useRef(false);
   // 손글씨 업로드가 끝나기 전에는 mutation 이 아직 pending 이 아니라서, 그 사이 두 번 눌리면 마무리가 두 번 나간다.
+  const { ensureConsent, consentDialog } = useHandwritingConsent();
   const submittingRef = useRef(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -134,21 +138,42 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
     submittingRef.current = true;
     setSubmitting(true);
     try {
+      // 동의 확인이 업로드보다 먼저다(D-128). 동의하지 않으면 올리지 않고 멈춘다.
+      if (!(await ensureConsent())) {
+        showBottomToast('손글씨 저장에 동의해야 다 풀었어요를 보낼 수 있어요.');
+        return;
+      }
       const handwriting = await handwritingRepository.uploadHandwriting({
         strokes,
       });
-      const saved = await finishMutation.mutateAsync({
+      const payload = {
         blankSessionId: sessionId,
         selfJudgement: hasAnswerField ? null : selfJudgement,
         selectedAnswer: hasAnswerField ? selectedAnswer.trim() : null,
         elapsedSeconds: Math.round((Date.now() - startedAtRef.current) / 1000),
         handwriting,
         stuckReasons: null,
-      });
+      };
+      let saved;
+      try {
+        saved = await finishMutation.mutateAsync(payload);
+      } catch (error) {
+        if (getApiError(error)?.code !== 'CONSENT_REQUIRED') throw error;
+        // 동의 버전이 바뀐 경우: 다시 묻고, 올려 둔 손글씨를 재사용해 한 번 더 보낸다.
+        if (!(await ensureConsent(true))) {
+          showBottomToast(
+            '손글씨 저장에 동의해야 다 풀었어요를 보낼 수 있어요.'
+          );
+          return;
+        }
+        saved = await finishMutation.mutateAsync(payload);
+      }
       setResult(saved);
     } catch (error) {
       const code = getApiError(error)?.code ?? '';
-      showBottomToast(FINISH_ERROR_TEXT[code] ?? '저장하지 못했어요. 다시 시도해 주세요.');
+      showBottomToast(
+        FINISH_ERROR_TEXT[code] ?? '저장하지 못했어요. 다시 시도해 주세요.'
+      );
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -157,7 +182,7 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
 
   if (startError) {
     return (
-      <div className="mx-auto w-full max-w-page-max p-card-pad">
+      <div className="max-w-page-max p-card-pad mx-auto w-full">
         <EmptyState
           title={startError}
           action={
@@ -174,35 +199,41 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
   }
   if (sessionId === null || wrongAnswers.isPending) {
     return (
-      <div className="mx-auto w-full max-w-page-max p-card-pad">
+      <div className="max-w-page-max p-card-pad mx-auto w-full">
         <Skeleton.Block className="h-96 w-full" />
       </div>
     );
   }
   if (result) {
     return (
-      <div className="mx-auto w-full max-w-content-max p-card-pad">
+      <div className="max-w-content-max p-card-pad mx-auto w-full">
         <ResultPanel result={result} />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-page-max flex-col gap-section-gap p-card-pad pb-32">
+    <div className="max-w-page-max gap-section-gap p-card-pad mx-auto flex w-full flex-col pb-32">
       <h1 className="font-headline1-heading text-text-main">
         백지에 다시 풀기
       </h1>
       <section
         aria-label="문제"
-        className="border-line-line1 rounded-card flex flex-col gap-3 border bg-white p-card-pad"
+        className="border-line-line1 rounded-card p-card-pad flex flex-col gap-3 border bg-white"
       >
         <p className="font-body1-heading text-text-main">
-          {challenge?.questionText ?? item?.questionText ?? item?.title ?? '문제'}
+          {challenge?.questionText ??
+            item?.questionText ??
+            item?.title ??
+            '문제'}
         </p>
         {(challenge?.questionImageUrl ?? item?.questionImageUrl) && (
           <span className="relative block h-64 w-full">
             <Image
-              src={(challenge?.questionImageUrl ?? item?.questionImageUrl) as string}
+              src={
+                (challenge?.questionImageUrl ??
+                  item?.questionImageUrl) as string
+              }
               alt="문제"
               fill
               unoptimized
@@ -232,7 +263,7 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
                       onClick={() => setSelectedAnswer(choice)}
                       data-testid="blank-choice"
                       className={cn(
-                        'min-h-touch-min rounded-button border px-4 font-body2-heading',
+                        'min-h-touch-min rounded-button font-body2-heading border px-4',
                         on
                           ? 'border-orange-9 bg-orange-1 text-orange-10'
                           : 'border-line-line2 bg-white'
@@ -272,7 +303,7 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
           </Button>
         </section>
       )}
-      <div className="border-line-line1 fixed right-0 bottom-control-xl left-0 z-(--z-layer-chrome) flex justify-end border-t bg-white p-3 lg:bottom-0 lg:left-(--spacing-sidebar-width)">
+      <div className="border-line-line1 bottom-control-xl fixed right-0 left-0 z-(--z-layer-chrome) flex justify-end border-t bg-white p-3 lg:bottom-0 lg:left-(--spacing-sidebar-width)">
         <Button
           size="large"
           disabled={answerMissing}
@@ -283,6 +314,7 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
           다 풀었어요
         </Button>
       </div>
+      {consentDialog}
     </div>
   );
 };

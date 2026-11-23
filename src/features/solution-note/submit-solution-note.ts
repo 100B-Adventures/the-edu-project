@@ -1,8 +1,7 @@
-import axios from 'axios';
-
 import { handwritingRepository } from '@/entities/handwriting';
 import { solutionNoteRepository } from '@/entities/solution-note';
 import type { Stroke } from '@/shared/components/drawing';
+import axios from 'axios';
 
 type SubmitInput = {
   attemptId: number;
@@ -12,6 +11,12 @@ type SubmitInput = {
   selfJudgement?: 'CORRECT' | 'WRONG' | null;
   idempotencyKey: string;
 };
+
+export class ConsentDeclinedError extends Error {
+  constructor() {
+    super('HANDWRITING_CONSENT_DECLINED');
+  }
+}
 
 type ErrorBody = {
   code?: string;
@@ -28,23 +33,34 @@ export const getConsentRequired = (
 };
 
 const errorBody = (error: unknown): ErrorBody | null =>
-  axios.isAxiosError(error) ? ((error.response?.data as ErrorBody) ?? null) : null;
+  axios.isAxiosError(error)
+    ? ((error.response?.data as ErrorBody) ?? null)
+    : null;
 
 /**
  * 제출 직후 풀이노트를 만든다(api-contract §1.1). 채점은 기존 challenge-attempts 가 먼저 끝나 있다.
+ * 순서(D-128): 동의 확인 -> 손필기 업로드 -> 노트 생성. 동의가 없는데 올리지 않는다.
+ * - 동의를 못 받으면(나중에, 기록 실패) ConsentDeclinedError 로 멈춘다. 업로드는 일어나지 않았다.
+ * - 서버가 그래도 400 CONSENT_REQUIRED 를 주면(동의 버전이 바뀐 경우) 다시 묻고, 올려 둔 손필기를 재사용해 한 번 더 보낸다.
  * - 이미 같은 시도로 만든 노트가 있으면(409 SOLUTION_NOTE_ALREADY_EXISTS) 그 노트 id 를 돌려준다.
  * - 빈 제출은 화면에서 이미 확인을 받았으므로 confirmEmpty 를 켠다.
  */
-export const submitSolutionNote = async ({
-  attemptId,
-  strokes,
-  elapsedSeconds,
-  selfJudgement = null,
-  idempotencyKey,
-}: SubmitInput): Promise<number> => {
-  const handwriting = await handwritingRepository.uploadHandwriting({ strokes });
-  try {
-    const created = await solutionNoteRepository.create(
+export const submitSolutionNote = async (
+  {
+    attemptId,
+    strokes,
+    elapsedSeconds,
+    selfJudgement = null,
+    idempotencyKey,
+  }: SubmitInput,
+  ensureConsent: (force?: boolean) => Promise<boolean>
+): Promise<number> => {
+  if (!(await ensureConsent())) throw new ConsentDeclinedError();
+  const handwriting = await handwritingRepository.uploadHandwriting({
+    strokes,
+  });
+  const send = () =>
+    solutionNoteRepository.create(
       {
         challengeAttemptId: attemptId,
         elapsedSeconds,
@@ -54,32 +70,22 @@ export const submitSolutionNote = async ({
       },
       idempotencyKey
     );
-    return created.solutionNoteId;
+  try {
+    try {
+      return (await send()).solutionNoteId;
+    } catch (error) {
+      if (!getConsentRequired(error)) throw error;
+      if (!(await ensureConsent(true))) throw new ConsentDeclinedError();
+      return (await send()).solutionNoteId;
+    }
   } catch (error) {
     const body = errorBody(error);
-    if (body?.code === 'SOLUTION_NOTE_ALREADY_EXISTS' && body.data?.solutionNoteId) {
+    if (
+      body?.code === 'SOLUTION_NOTE_ALREADY_EXISTS' &&
+      body.data?.solutionNoteId
+    ) {
       return body.data.solutionNoteId;
     }
     throw error;
-  }
-};
-
-/**
- * 풀이노트 만들기 + 동의 흐름. 동의가 없으면 askConsent 로 학생에게 묻고,
- * 동의하면 POST /student/consents 한 뒤 원래 제출을 다시 보낸다. 거절하면 그 오류를 그대로 던진다.
- */
-export const submitSolutionNoteWithConsent = async (
-  input: SubmitInput,
-  askConsent: (consentType: string) => Promise<boolean>
-): Promise<number> => {
-  try {
-    return await submitSolutionNote(input);
-  } catch (error) {
-    const required = getConsentRequired(error);
-    if (!required) throw error;
-    const agreed = await askConsent(required.consentType);
-    if (!agreed) throw error;
-    await handwritingRepository.grantConsent(required.consentType);
-    return submitSolutionNote(input);
   }
 };

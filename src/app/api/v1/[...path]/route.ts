@@ -82,6 +82,12 @@ async function handleRequest(
     requestHeaders['Cookie'] = cookieHeader;
   }
 
+  // 멱등 키는 있을 때만 그대로 전달한다(api-contract §0). 없으면 기존 요청과 같다.
+  const idempotencyKey = headers.get('Idempotency-Key');
+  if (idempotencyKey) {
+    requestHeaders['Idempotency-Key'] = idempotencyKey;
+  }
+
   // 요청 본문 처리
   let requestBody: string | undefined;
   if (
@@ -113,8 +119,15 @@ async function handleRequest(
   if (!backendResponse.ok) {
     const message = extractErrorMessage(payload) ?? '요청 처리에 실패했습니다.';
     const code = extractErrorCode(payload);
+    // 백엔드가 실패 응답에 data 를 실어 보내면(예: 409 의 기존 풀이노트 id, 400 의 동의 종류) 그대로 보존한다.
+    const errorData =
+      payload && typeof payload === 'object' && 'data' in payload
+        ? (payload as { data?: unknown }).data
+        : undefined;
     const errorResponse = NextResponse.json(
-      { code, message },
+      errorData === undefined || errorData === null
+        ? { code, message }
+        : { code, message, data: errorData },
       { status: backendResponse.status }
     );
     // 에러 응답에도 쿠키 적용 (리프레시 토큰 등)

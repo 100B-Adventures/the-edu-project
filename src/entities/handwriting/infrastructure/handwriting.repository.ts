@@ -179,7 +179,16 @@ const grantConsent = async (consentType: string) => {
   });
 };
 
+/** GET /api/student/consents/{type}. 동의한 적이 없으면 granted=false. */
+const getConsent = async (consentType: string): Promise<{ granted: boolean }> => {
+  const response = (await api.private.get(
+    `/student/consents/${consentType}`
+  )) as { data?: { granted?: boolean } };
+  return { granted: response?.data?.granted === true };
+};
+
 export const handwritingRepository = {
+  getConsent,
   grantConsent,
   uploadHandwriting,
   fetchStrokes,

@@ -1,7 +1,7 @@
 import {
+  type ReviseSolutionNotePayload,
   solutionNoteKeys,
   solutionNoteRepository,
-  type ReviseSolutionNotePayload,
 } from '@/entities/solution-note';
 import { reviewKeys } from '@/entities/wrong-answer';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

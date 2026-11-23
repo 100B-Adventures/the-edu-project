@@ -105,7 +105,10 @@ describe('시험 항목 S17 N회독 홈', () => {
     expect(item).toHaveTextContent('등차수열의 합');
     expect(item).toHaveTextContent('오래 걸림');
     expect(item).toHaveTextContent('+20 EXP');
-    expect(item.querySelector('img')).toHaveAttribute('src', 'https://img.example/q.png');
+    expect(item.querySelector('img')).toHaveAttribute(
+      'src',
+      'https://img.example/q.png'
+    );
   });
 
   it('S17-5 개요 호출이 실패하면 오류 상태와 다시 시도 버튼을 보인다', async () => {

@@ -1,10 +1,12 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-
-import { teachingNoteKeys, teachingNoteRepository } from '@/entities/teaching-note';
+import {
+  teachingNoteKeys,
+  teachingNoteRepository,
+} from '@/entities/teaching-note';
 import { Skeleton } from '@/shared/components/loading';
 import { EmptyState } from '@/shared/components/ui';
+import { useQuery } from '@tanstack/react-query';
 
 type Props = { token: string };
 
@@ -21,7 +23,7 @@ export const ShareMetaView = ({ token }: Props) => {
   }
   const meta = query.data;
   return (
-    <main className="mx-auto flex w-full max-w-content-max flex-col gap-3 p-card-pad">
+    <main className="max-w-content-max p-card-pad mx-auto flex w-full flex-col gap-3">
       <h1 className="font-headline1-heading text-text-main">
         {meta.title ?? '수업노트'}
       </h1>
@@ -29,8 +31,8 @@ export const ShareMetaView = ({ token }: Props) => {
         {[meta.studyRoomName, meta.teacherName].filter(Boolean).join(' · ')}
       </p>
       <p className="font-body1-normal text-text-main">
-        같이 푼 문제 {meta.problemCount} · 판서 사진 {meta.boardPhotoCount} · 과제{' '}
-        {meta.homeworkCount}
+        같이 푼 문제 {meta.problemCount} · 판서 사진 {meta.boardPhotoCount} ·
+        과제 {meta.homeworkCount}
       </p>
     </main>
   );

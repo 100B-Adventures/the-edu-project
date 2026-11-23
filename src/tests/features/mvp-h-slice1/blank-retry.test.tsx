@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   get: vi.fn(),
   post: vi.fn(),
   upload: vi.fn(),
+  getConsent: vi.fn(),
+  grant: vi.fn(),
   items: [] as Array<Record<string, unknown>>,
 }));
 
@@ -19,7 +21,11 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), back: vi.fn() }),
 }));
 vi.mock('@/entities/handwriting', () => ({
-  handwritingRepository: { uploadHandwriting: mocks.upload },
+  handwritingRepository: {
+    uploadHandwriting: mocks.upload,
+    getConsent: mocks.getConsent,
+    grantConsent: mocks.grant,
+  },
 }));
 vi.mock('@/shared/components/drawing', () => ({
   SolutionDrawingPad: () => <div data-testid="pad" />,
@@ -54,6 +60,8 @@ const RESULT = {
 describe('시험 항목 S23 백지에 다시 풀기', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getConsent.mockResolvedValue({ granted: true });
+    mocks.grant.mockResolvedValue(undefined);
     mocks.items = [
       { id: 501, challengeId: 11, title: '합', questionText: '합은?' },
     ];
@@ -126,11 +134,46 @@ describe('시험 항목 S23 백지에 다시 풀기', () => {
       layoutWidth: 1024,
       layoutHeight: 1400,
     });
-    await waitFor(() => expect(screen.getByTestId('blank-reward')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByTestId('blank-reward')).toBeInTheDocument()
+    );
     const finishes = mocks.post.mock.calls.filter((c) =>
       String(c[0]).endsWith('/blank-retries')
     );
     expect(finishes).toHaveLength(1);
+  });
+
+  it('S23-8 거절: 동의가 없고 나중에 를 누르면 손글씨를 올리지도 마무리를 보내지도 않는다', async () => {
+    const user = userEvent.setup();
+    mocks.getConsent.mockResolvedValue({ granted: false });
+    renderWithQuery(<BlankRetry wrongAnswerId={501} />);
+    await user.click((await screen.findAllByTestId('blank-choice'))[1]!);
+    await user.click(screen.getByTestId('blank-submit'));
+    await user.click(await screen.findByTestId('consent-decline'));
+    await waitFor(() =>
+      expect(screen.queryByTestId('consent-dialog')).not.toBeInTheDocument()
+    );
+    expect(mocks.upload).not.toHaveBeenCalled();
+    expect(
+      mocks.post.mock.calls.filter((c) =>
+        String(c[0]).endsWith('/blank-retries')
+      )
+    ).toHaveLength(0);
+  });
+
+  it('S23-9 동의가 없으면 창에서 동의를 기록한 뒤에 업로드하고 마무리를 보낸다', async () => {
+    const user = userEvent.setup();
+    mocks.getConsent.mockResolvedValue({ granted: false });
+    renderWithQuery(<BlankRetry wrongAnswerId={501} />);
+    await user.click((await screen.findAllByTestId('blank-choice'))[1]!);
+    await user.click(screen.getByTestId('blank-submit'));
+    expect(mocks.upload).not.toHaveBeenCalled();
+    await user.click(await screen.findByTestId('consent-agree'));
+    await waitFor(() =>
+      expect(screen.getByTestId('blank-reward')).toBeInTheDocument()
+    );
+    expect(mocks.grant).toHaveBeenCalledWith('HANDWRITING_STORE');
+    expect(mocks.upload).toHaveBeenCalledTimes(1);
   });
 
   it('S23-3 답칸이 없는 문제는 맞았어요/틀렸어요를 골라야 제출되고 selectedAnswer 는 null 이다', async () => {

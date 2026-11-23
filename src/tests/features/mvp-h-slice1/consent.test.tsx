@@ -1,7 +1,8 @@
 import { HandwritingConsentDialog } from '@/features/solution-note/components/handwriting-consent-dialog';
 import {
+  ConsentDeclinedError,
   getConsentRequired,
-  submitSolutionNoteWithConsent,
+  submitSolutionNote,
 } from '@/features/solution-note/submit-solution-note';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -60,36 +61,43 @@ describe('시험 항목 S23 손필기 저장 동의 흐름', () => {
     expect(getConsentRequired(new Error('다른 오류'))).toBeNull();
   });
 
-  it('S23-2 동의하면 동의를 POST 한 뒤 같은 제출을 다시 보낸다', async () => {
+  it('S23-2 동의가 이미 있으면 창 없이 업로드하고 노트를 만든다', async () => {
+    mocks.create.mockResolvedValue({ solutionNoteId: 11 });
+    const ensure = vi.fn().mockResolvedValue(true);
+    const id = await submitSolutionNote(input, ensure);
+    expect(id).toBe(11);
+    expect(ensure).toHaveBeenCalledTimes(1);
+    expect(mocks.upload).toHaveBeenCalledTimes(1);
+  });
+
+  it('S23-3 거절: 동의를 못 받으면 손글씨를 올리지 않고 멈춘다(동의 확인이 업로드보다 먼저)', async () => {
+    const ensure = vi.fn().mockResolvedValue(false);
+    await expect(submitSolutionNote(input, ensure)).rejects.toBeInstanceOf(
+      ConsentDeclinedError
+    );
+    expect(mocks.upload).not.toHaveBeenCalled();
+    expect(mocks.create).not.toHaveBeenCalled();
+  });
+
+  it('S23-4 서버가 그래도 CONSENT_REQUIRED 를 주면 다시 묻고, 올려 둔 손글씨를 재사용해 한 번 더 보낸다', async () => {
     mocks.create
       .mockRejectedValueOnce(consentError())
-      .mockResolvedValueOnce({ solutionNoteId: 11 });
-    mocks.grant.mockResolvedValue(undefined);
-    const ask = vi.fn().mockResolvedValue(true);
-
-    const id = await submitSolutionNoteWithConsent(input, ask);
-
-    expect(id).toBe(11);
-    expect(ask).toHaveBeenCalledWith('HANDWRITING_STORE');
-    expect(mocks.grant).toHaveBeenCalledWith('HANDWRITING_STORE');
+      .mockResolvedValueOnce({ solutionNoteId: 12 });
+    const ensure = vi.fn().mockResolvedValue(true);
+    const id = await submitSolutionNote(input, ensure);
+    expect(id).toBe(12);
+    expect(ensure).toHaveBeenNthCalledWith(2, true);
+    expect(mocks.upload).toHaveBeenCalledTimes(1);
     expect(mocks.create).toHaveBeenCalledTimes(2);
-    expect(mocks.create.mock.calls[1]![1]).toBe('sn-1-7');
   });
 
-  it('S23-3 거절: 동의하지 않으면 동의를 보내지 않고 오류를 그대로 던진다', async () => {
-    mocks.create.mockRejectedValue(consentError());
-    const ask = vi.fn().mockResolvedValue(false);
-
-    await expect(submitSolutionNoteWithConsent(input, ask)).rejects.toBeTruthy();
-    expect(mocks.grant).not.toHaveBeenCalled();
-    expect(mocks.create).toHaveBeenCalledTimes(1);
-  });
-
-  it('S23-4 동의 오류가 아닌 실패는 창을 묻지 않고 던진다', async () => {
+  it('S23-6 동의 오류가 아닌 실패는 창을 다시 묻지 않고 던진다', async () => {
     mocks.create.mockRejectedValue(new Error('서버 오류'));
-    const ask = vi.fn();
-    await expect(submitSolutionNoteWithConsent(input, ask)).rejects.toThrow();
-    expect(ask).not.toHaveBeenCalled();
+    const ensure = vi.fn().mockResolvedValue(true);
+    await expect(submitSolutionNote(input, ensure)).rejects.toThrow(
+      '서버 오류'
+    );
+    expect(ensure).toHaveBeenCalledTimes(1);
   });
 
   it('S23-5 동의 창은 동의·나중에 버튼이 각각 한 번씩 동작한다', async () => {

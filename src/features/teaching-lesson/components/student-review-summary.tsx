@@ -1,18 +1,18 @@
 'use client';
 
-import Link from 'next/link';
-
 import { Skeleton } from '@/shared/components/loading';
 import { EmptyState } from '@/shared/components/ui';
-import { PRIVATE } from '@/shared/constants';
 
-import { NOTE_LABEL_TEXT, STUCK_REASON_LABEL } from '../../review/review-labels';
+import {
+  NOTE_LABEL_TEXT,
+  STUCK_REASON_LABEL,
+} from '../../review/review-labels';
 import { useStudentReviewSummaryQuery } from '../hooks/use-lesson';
 
 type Props = { studentId: number };
 
 const Stat = ({ label, value }: { label: string; value: number }) => (
-  <div className="border-line-line1 rounded-card flex flex-1 flex-col gap-1 border bg-white p-card-pad">
+  <div className="border-line-line1 rounded-card p-card-pad flex flex-1 flex-col gap-1 border bg-white">
     <span className="font-label-normal text-text-sub1">{label}</span>
     <span className="font-headline1-heading text-text-main">{value}</span>
   </div>
@@ -30,7 +30,7 @@ export const StudentReviewSummary = ({ studentId }: Props) => {
     (a, b) => b[1] - a[1]
   );
   return (
-    <div className="mx-auto flex w-full max-w-page-max flex-col gap-section-gap p-card-pad">
+    <div className="max-w-page-max gap-section-gap p-card-pad mx-auto flex w-full flex-col">
       <h1 className="font-headline1-heading text-text-main">학생 N회독</h1>
       <div className="flex flex-wrap gap-3">
         <Stat
@@ -65,13 +65,17 @@ export const StudentReviewSummary = ({ studentId }: Props) => {
       >
         <h2 className="font-headline2-heading text-text-main">최근 풀이노트</h2>
         {summary.recentNotes.length === 0 && (
-          <p className="font-body2-normal text-text-sub1">풀이노트가 아직 없어요.</p>
+          <p className="font-body2-normal text-text-sub1">
+            풀이노트가 아직 없어요.
+          </p>
         )}
         {summary.recentNotes.map((note) => (
-          <Link
+          // 선생님이 학생 풀이노트를 열어 보는 읽기 API 가 조각 1 에 없다(/api/student/** 는 학생 전용).
+          // 열리지 않는 링크를 두지 않고, 제목과 라벨만 보인다. 읽기 경로는 후속(fe-v1.7.0 로그 M-6).
+          <div
             key={note.solutionNoteId}
-            href={PRIVATE.DASHBOARD.SOLUTION_NOTE(note.solutionNoteId)}
-            className="border-line-line1 rounded-card hover:border-orange-9 flex min-h-touch-min flex-wrap items-center gap-2 border bg-white px-4 py-3"
+            className="border-line-line1 rounded-card min-h-touch-min flex flex-wrap items-center gap-2 border bg-white px-4 py-3"
+            data-testid="student-note-row"
           >
             <span className="font-body1-heading text-text-main truncate">
               {note.title ?? '풀이노트'}
@@ -84,7 +88,7 @@ export const StudentReviewSummary = ({ studentId }: Props) => {
                 {NOTE_LABEL_TEXT[label] ?? label}
               </span>
             ))}
-          </Link>
+          </div>
         ))}
       </section>
     </div>

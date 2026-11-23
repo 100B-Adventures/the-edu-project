@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -10,8 +10,8 @@ import { useGetStudentNotesList } from '@/features/study-notes/hooks';
 import { Skeleton } from '@/shared/components/loading';
 import { Button, Input, showBottomToast } from '@/shared/components/ui';
 import { PRIVATE, PUBLIC } from '@/shared/constants';
-import { getApiError } from '@/shared/lib';
 import { useRole } from '@/shared/hooks/use-role';
+import { getApiError } from '@/shared/lib';
 
 import {
   useLessonInfoQuery,
@@ -34,7 +34,10 @@ const formatDate = (iso: string | null | undefined) => {
 };
 
 const formatNextLesson = (
-  next: { at?: string | null; minutes?: number | null; mode?: string | null } | null | undefined
+  next:
+    | { at?: string | null; minutes?: number | null; mode?: string | null }
+    | null
+    | undefined
 ) => {
   if (!next?.at) return null;
   const date = new Date(next.at);
@@ -56,7 +59,7 @@ const Panel = ({
   <section
     aria-label={title}
     data-testid={testId}
-    className="border-line-line1 rounded-card flex flex-col gap-3 border bg-white p-card-pad"
+    className="border-line-line1 rounded-card p-card-pad flex flex-col gap-3 border bg-white"
   >
     <h2 className="font-headline2-heading text-text-main">{title}</h2>
     {children}
@@ -84,7 +87,7 @@ const ProblemList = ({ problems }: { problems: NoteProblemRow[] }) => {
               problem.challengeId &&
               router.push(PUBLIC.OPEN_CHALLENGE.DETAIL(problem.challengeId))
             }
-            className="border-line-line1 rounded-card hover:border-orange-9 flex min-h-touch-min w-full items-center justify-between gap-3 border px-4 py-3 text-left"
+            className="border-line-line1 rounded-card hover:border-orange-9 min-h-touch-min flex w-full items-center justify-between gap-3 border px-4 py-3 text-left"
           >
             <span className="font-body1-heading text-text-main truncate">
               {problem.title ?? '문제'}
@@ -117,7 +120,9 @@ const StudentLesson = ({ studyRoomId }: LessonPageProps) => {
     'student',
     noteRows.map((note) => note.id)
   );
-  const problems = problemQueries.flatMap((query) => query.data?.problems ?? []);
+  const problems = problemQueries.flatMap(
+    (query) => query.data?.problems ?? []
+  );
   const memoValue = memo ?? info.data?.myMemo ?? '';
   const nextLesson = formatNextLesson(info.data?.nextLesson);
 
@@ -150,8 +155,8 @@ const StudentLesson = ({ studyRoomId }: LessonPageProps) => {
   };
 
   return (
-    <div className="grid gap-section-gap lg:grid-cols-[2fr_1fr]">
-      <div className="flex flex-col gap-section-gap">
+    <div className="gap-section-gap grid lg:grid-cols-[2fr_1fr]">
+      <div className="gap-section-gap flex flex-col">
         <Panel
           title="배운 것"
           testId="lesson-notes"
@@ -159,14 +164,16 @@ const StudentLesson = ({ studyRoomId }: LessonPageProps) => {
           {notes.isPending ? (
             <Skeleton.Block className="h-24 w-full" />
           ) : noteRows.length === 0 ? (
-            <p className="font-body2-normal text-text-sub1">수업노트가 아직 없어요.</p>
+            <p className="font-body2-normal text-text-sub1">
+              수업노트가 아직 없어요.
+            </p>
           ) : (
             <ul className="flex flex-col gap-2">
               {noteRows.map((note) => (
                 <li key={note.id}>
                   <Link
                     href={PRIVATE.NOTE.DETAIL(studyRoomId, note.id)}
-                    className="border-line-line1 rounded-card hover:border-orange-9 flex min-h-touch-min items-center gap-3 border px-4 py-3"
+                    className="border-line-line1 rounded-card hover:border-orange-9 min-h-touch-min flex items-center gap-3 border px-4 py-3"
                   >
                     <span className="font-label-heading text-orange-10 shrink-0">
                       {formatDate(note.taughtAt)}
@@ -184,14 +191,15 @@ const StudentLesson = ({ studyRoomId }: LessonPageProps) => {
           title="같이 푼 문제"
           testId="lesson-problems"
         >
-          {notes.isPending || problemQueries.some((query) => query.isPending) ? (
+          {notes.isPending ||
+          problemQueries.some((query) => query.isPending) ? (
             <Skeleton.Block className="h-24 w-full" />
           ) : (
             <ProblemList problems={problems} />
           )}
         </Panel>
       </div>
-      <div className="flex flex-col gap-section-gap">
+      <div className="gap-section-gap flex flex-col">
         <Panel
           title="다음 수업"
           testId="lesson-next"
@@ -204,7 +212,9 @@ const StudentLesson = ({ studyRoomId }: LessonPageProps) => {
             </p>
           )}
           {info.data?.weekly && (
-            <p className="font-body2-normal text-text-sub1">{info.data.weekly}</p>
+            <p className="font-body2-normal text-text-sub1">
+              {info.data.weekly}
+            </p>
           )}
         </Panel>
         {info.data?.teacherNote && (
@@ -265,11 +275,17 @@ const StudentLesson = ({ studyRoomId }: LessonPageProps) => {
 
 export const LessonPage = ({ studyRoomId }: LessonPageProps) => {
   const { role, isLoading } = useRole();
-  if (isLoading) {
+  // 서버 렌더와 브라우저 첫 렌더가 같도록, 마운트 전에는 항상 같은 스켈레톤을 그린다.
+  // useRole 은 캐시된 세션을 initialData 로 즉시 돌려줘서 첫 렌더부터 역할 화면이 나올 수 있다.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  if (!mounted || isLoading) {
     return <Skeleton.Block className="h-60 w-full" />;
   }
   return (
-    <div className="flex flex-col gap-section-gap">
+    <div className="gap-section-gap flex flex-col">
       {role === 'ROLE_TEACHER' ? (
         <TeacherLesson studyRoomId={studyRoomId} />
       ) : (

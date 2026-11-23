@@ -11,18 +11,27 @@ import {
   usePublicInvitePreviewQuery,
 } from '@/features/social/hooks';
 import {
+  ConsentDeclinedError,
+  submitSolutionNote,
+} from '@/features/solution-note/submit-solution-note';
+import { useHandwritingConsent } from '@/features/solution-note/use-handwriting-consent';
+import {
   SolutionDrawingPad,
   type Stroke,
   exportStrokesToDataURL,
   useDrawingUpload,
 } from '@/shared/components/drawing';
-import { BackButton, Button, Dialog, Prompt } from '@/shared/components/ui';
+import {
+  BackButton,
+  Button,
+  Dialog,
+  Prompt,
+  showBottomToast,
+} from '@/shared/components/ui';
 import { PRIVATE, PUBLIC } from '@/shared/constants';
 import { cn } from '@/shared/lib';
-import { isMvpHSliceEnabled } from '@/shared/lib/mvp-h-slice';
-import { HandwritingConsentDialog } from '@/features/solution-note/components/handwriting-consent-dialog';
-import { submitSolutionNoteWithConsent } from '@/features/solution-note/submit-solution-note';
 import { trackOcStart, trackOcSubmit } from '@/shared/lib/analytics';
+import { isMvpHSliceEnabled } from '@/shared/lib/mvp-h-slice';
 import {
   Bot,
   ChevronDown,
@@ -120,9 +129,10 @@ export const ChallengeSolveClient = ({
   const [isQuestionOpen, setIsQuestionOpen] = useState(true);
   const [isInviteContextOpen, setIsInviteContextOpen] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const consentResolverRef = useRef<((agreed: boolean) => void) | null>(null);
-  const [isConsentOpen, setIsConsentOpen] = useState(false);
-  const [isConsentPending, setIsConsentPending] = useState(false);
+  const { ensureConsent, consentDialog } = useHandwritingConsent();
+  // 제출 전체(채점, 동의, 손필기 업로드, 풀이노트 생성)가 끝날 때까지 두 번째 제출을 막는다.
+  const submittingRef = useRef(false);
+  const [isNoteSubmitting, setIsNoteSubmitting] = useState(false);
   const [isEmptyDrawingPromptOpen, setIsEmptyDrawingPromptOpen] =
     useState(false);
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
@@ -183,6 +193,7 @@ export const ChallengeSolveClient = ({
     submitAnswerMutation.isPending ||
     guestGradeMutation.isPending ||
     finishAiCoachingSessionMutation.isPending ||
+    isNoteSubmitting ||
     isUploading;
   const hasChallengeHistory =
     !!challengeHistory &&
@@ -366,6 +377,18 @@ export const ChallengeSolveClient = ({
   };
 
   const submitSelectedAnswer = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setIsNoteSubmitting(true);
+    try {
+      await submitSelectedAnswerInner();
+    } finally {
+      submittingRef.current = false;
+      setIsNoteSubmitting(false);
+    }
+  };
+
+  const submitSelectedAnswerInner = async () => {
     if (!selectedAnswer) {
       setSubmitError('답을 먼저 선택해 주세요.');
       choiceSectionRef.current?.scrollIntoView({
@@ -408,9 +431,10 @@ export const ChallengeSolveClient = ({
 
       // MVP-H slice 1: 제출 뒤에는 풀이노트(내 풀이 | 해설 두 칸)로 간다.
       // 실패하면 기존 결과 화면 흐름으로 이어 가 제출 자체는 막지 않는다.
+      let skipDrawingShare = false;
       if (isMvpHSliceEnabled()) {
         try {
-          const solutionNoteId = await submitSolutionNoteWithConsent(
+          const solutionNoteId = await submitSolutionNote(
             {
               attemptId: Number(attemptId),
               strokes: drawingStrokes,
@@ -419,20 +443,22 @@ export const ChallengeSolveClient = ({
               ),
               idempotencyKey: `sn-${challengeId}-${attemptId}`,
             },
-            () =>
-              new Promise<boolean>((resolve) => {
-                consentResolverRef.current = resolve;
-                setIsConsentOpen(true);
-              })
+            ensureConsent
           );
-          setIsConsentOpen(false);
-          setIsConsentPending(false);
           router.push(PRIVATE.DASHBOARD.SOLUTION_NOTE(solutionNoteId));
           return;
-        } catch {
-          // 아래 기존 흐름으로 계속한다.
-          setIsConsentOpen(false);
-          setIsConsentPending(false);
+        } catch (error) {
+          if (error instanceof ConsentDeclinedError) {
+            // 저장에 동의하지 않았으면 손글씨는 올리지도, 공유하지도 않는다.
+            skipDrawingShare = true;
+            showBottomToast(
+              '손글씨를 저장하지 않아 풀이노트는 만들지 않았어요. 결과 화면으로 이동해요.'
+            );
+          } else {
+            showBottomToast(
+              '풀이노트를 만들지 못했어요. 결과 화면으로 이동해요.'
+            );
+          }
         }
       }
 
@@ -440,7 +466,7 @@ export const ChallengeSolveClient = ({
       let drawingShareFailure:
         | { strokes: Stroke[]; mediaAssetId?: number }
         | undefined;
-      if (drawingStrokes.length > 0) {
+      if (drawingStrokes.length > 0 && !skipDrawingShare) {
         let mediaAssetId: number | undefined;
         try {
           ({ mediaAssetId } = await uploadDrawingAsync(drawingStrokes));
@@ -1092,18 +1118,7 @@ export const ChallengeSolveClient = ({
         </Dialog.Content>
       </Dialog>
 
-      <HandwritingConsentDialog
-        isOpen={isConsentOpen}
-        isPending={isConsentPending}
-        onAgree={() => {
-          setIsConsentPending(true);
-          consentResolverRef.current?.(true);
-        }}
-        onDecline={() => {
-          setIsConsentOpen(false);
-          consentResolverRef.current?.(false);
-        }}
-      />
+      {consentDialog}
 
       <ChallengeHistoryDialog
         challengeId={challengeId}
