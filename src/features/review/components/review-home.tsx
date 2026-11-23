@@ -183,7 +183,7 @@ const QuestSection = ({
                 )}
                 {item.expReward ? (
                   <span
-                    className="font-label-heading text-orange-10 border-orange-9 rounded-pill border px-3"
+                    className="font-label-heading text-orange-10 border-orange-9 rounded-pill border px-2 whitespace-nowrap sm:px-3"
                     data-testid="quest-item-exp"
                   >
                     +{item.expReward} EXP

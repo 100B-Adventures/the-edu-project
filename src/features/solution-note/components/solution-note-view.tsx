@@ -442,7 +442,7 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
           {fixing ? (
             <Button
               size="large"
-              className="gap-2"
+              className="h-auto flex-col gap-0 py-2 lg:flex-row lg:gap-2"
               isLoading={reviseMutation.isPending}
               onClick={() => void handleSaveFix()}
               data-testid="note-save-fix"
@@ -454,7 +454,7 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
             <Button
               size="large"
               variant="outlined"
-              className="gap-2"
+              className="h-auto flex-col gap-0 py-2 lg:flex-row lg:gap-2"
               onClick={() => void handleStartFix()}
               data-testid="note-start-fix"
             >
@@ -469,7 +469,7 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
             <Button
               size="large"
               variant="outlined"
-              className="gap-2"
+              className="h-auto flex-col gap-0 py-2 lg:flex-row lg:gap-2"
               onClick={() =>
                 router.push(
                   PRIVATE.DASHBOARD.STUDENT_REVIEW_BLANK(detail.wrongAnswer!.id)
