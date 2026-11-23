@@ -118,7 +118,7 @@ const LevelBar = ({ overview }: { overview: ReviewOverview }) => {
 /** 오늘 퀘스트 카드의 문제 사진. 서버가 항목별 `thumbUrl` 을 준다(D-131). */
 const QuestThumb = ({ url }: { url: string | null | undefined }) => (
   <span
-    className="border-line-line1 relative block aspect-3/4 w-full overflow-hidden rounded-card border bg-gray-1"
+    className="border-line-line1 relative block aspect-3/4 w-full overflow-hidden sm:aspect-auto sm:h-28 rounded-card border bg-gray-1"
     data-testid="quest-thumb"
   >
     {url && (
