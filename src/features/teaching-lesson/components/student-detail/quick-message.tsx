@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { messageText } from '@/entities/shell';
 import {
@@ -8,6 +8,7 @@ import {
   useSentMessagesQuery,
 } from '@/features/app-shell/hooks/use-shell-queries';
 import { Button, Textarea, showBottomToast } from '@/shared/components/ui';
+import { createId } from '@/shared/lib/create-id';
 
 const TEMPLATES = [
   { code: 'DOING_WELL', label: '잘하고 있어요' },
@@ -26,12 +27,20 @@ export const QuickMessage = ({ studentId, roomId }: QuickMessageProps) => {
   const send = useSendMessageMutation(studentId);
   const sent = sentQuery.data ?? [];
   const trimmed = custom.trim();
+  const idempotencyKey = useRef<string | null>(null);
+  if (idempotencyKey.current === null) {
+    idempotencyKey.current = `message-${createId()}`;
+  }
 
   const submit = (templateCode: string, body?: string) =>
     send.mutate(
-      { roomId, templateCode, body: body ?? null },
+      {
+        input: { roomId, templateCode, body: body ?? null },
+        idempotencyKey: idempotencyKey.current!,
+      },
       {
         onSuccess: () => {
+          idempotencyKey.current = `message-${createId()}`;
           setCustom('');
           showBottomToast('피드백을 보냈어요');
         },

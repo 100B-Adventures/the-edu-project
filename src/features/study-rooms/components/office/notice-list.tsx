@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import type { Notice } from '@/entities/shell';
 import {
@@ -16,6 +16,7 @@ import {
   showBottomToast,
 } from '@/shared/components/ui';
 import { StatusBadge } from '@/shared/components/ui/status-badge';
+import { createId } from '@/shared/lib/create-id';
 
 type NoticeListProps = {
   roomId: number;
@@ -31,6 +32,10 @@ const NoticeForm = ({ roomId }: { roomId: number }) => {
   const [pinned, setPinned] = useState(false);
   const { create } = useNoticeMutations(roomId);
   const ready = title.trim().length > 0 && body.trim().length > 0;
+  const idempotencyKey = useRef<string | null>(null);
+  if (idempotencyKey.current === null) {
+    idempotencyKey.current = `notice-${createId()}`;
+  }
 
   return (
     <form
@@ -39,9 +44,13 @@ const NoticeForm = ({ roomId }: { roomId: number }) => {
         event.preventDefault();
         if (!ready) return;
         create.mutate(
-          { title, body, pinned },
+          {
+            input: { title, body, pinned },
+            idempotencyKey: idempotencyKey.current!,
+          },
           {
             onSuccess: () => {
+              idempotencyKey.current = `notice-${createId()}`;
               setTitle('');
               setBody('');
               setPinned(false);

@@ -15,9 +15,6 @@ import { unwrapEnvelope } from '@/shared/lib/api-utils';
 
 import { dto, payload } from './shell.dto';
 
-const idempotencyKey = (scope: string) =>
-  `${scope}-${globalThis.crypto.randomUUID()}`;
-
 /* 학생 */
 const getTrack = async (): Promise<ShellTrack> =>
   unwrapEnvelope(await api.private.get('/student/me/track'), dto.track);
@@ -59,13 +56,14 @@ const getNotices = async (
 
 const createNotice = async (
   roomId: number,
-  input: NoticePayload
+  input: NoticePayload,
+  idempotencyKey: string
 ): Promise<Notice> =>
   unwrapEnvelope(
     await api.private.post(
       `/teacher/study-rooms/${roomId}/notices`,
       payload.notice.parse(input),
-      { headers: { 'Idempotency-Key': idempotencyKey('notice') } }
+      { headers: { 'Idempotency-Key': idempotencyKey } }
     ),
     dto.notice
   );
@@ -117,13 +115,14 @@ const getSentMessages = async (
 
 const sendMessage = async (
   studentId: number,
-  input: MessagePayload
+  input: MessagePayload,
+  idempotencyKey: string
 ): Promise<{ id: number }> =>
   unwrapEnvelope(
     await api.private.post(
       `/teacher/students/${studentId}/messages`,
       payload.message.parse(input),
-      { headers: { 'Idempotency-Key': idempotencyKey('message') } }
+      { headers: { 'Idempotency-Key': idempotencyKey } }
     ),
     dto.messageCreated
   );

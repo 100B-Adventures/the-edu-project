@@ -1,19 +1,10 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-
+import { OdokgongShell } from '@/features/app-shell/components/odokgong-shell';
 import { DashboardSidebar } from '@/features/dashboard/components/dashboard-sidebar';
 import { useSession } from '@/providers';
 import { cn } from '@/shared/lib';
 import { isMvpHShellEnabled } from '@/shared/lib/mvp-h-slice';
-
-const OdokgongShell = dynamic(
-  () =>
-    import('@/features/app-shell/components/odokgong-shell').then(
-      ({ OdokgongShell: Shell }) => Shell
-    ),
-  { ssr: false }
-);
 
 /**
  * 공개(비회원도 접근 가능) 페이지를 위한 조건부 사이드바 셸.

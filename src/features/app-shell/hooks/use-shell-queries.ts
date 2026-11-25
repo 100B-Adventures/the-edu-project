@@ -50,8 +50,13 @@ export const useNoticeMutations = (roomId: number) => {
     });
   return {
     create: useMutation({
-      mutationFn: (input: NoticePayload) =>
-        shellRepository.createNotice(roomId, input),
+      mutationFn: ({
+        input,
+        idempotencyKey,
+      }: {
+        input: NoticePayload;
+        idempotencyKey: string;
+      }) => shellRepository.createNotice(roomId, input, idempotencyKey),
       onSuccess: refresh,
     }),
     update: useMutation({
@@ -83,8 +88,13 @@ export const useSentMessagesQuery = (studentId: number, roomId?: number) =>
 export const useSendMessageMutation = (studentId: number) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (input: MessagePayload) =>
-      shellRepository.sendMessage(studentId, input),
+    mutationFn: ({
+      input,
+      idempotencyKey,
+    }: {
+      input: MessagePayload;
+      idempotencyKey: string;
+    }) => shellRepository.sendMessage(studentId, input, idempotencyKey),
     onSuccess: () =>
       queryClient.invalidateQueries({
         queryKey: [...shellKeys.all, 'sent', studentId],

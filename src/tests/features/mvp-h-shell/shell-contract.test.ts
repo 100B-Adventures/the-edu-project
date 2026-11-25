@@ -89,11 +89,7 @@ describe('T-SHL-A 앱 셸 계약', () => {
     expect(offGuard).toBeLessThan(source.indexOf('if (isDetailPage)'));
   });
 
-  it('T-SHL-A6 셸 코드가 지연 로딩되고 CSS와 메시지 모델이 기능 경계에 있다', () => {
-    const appShell = readFileSync(
-      join(process.cwd(), 'src/shared/components/app-shell/app-shell.tsx'),
-      'utf8'
-    );
+  it('T-SHL-A6 셸 CSS와 메시지 모델이 기능 경계에 있다', () => {
     const globals = readFileSync(
       join(process.cwd(), 'src/styles/globals.css'),
       'utf8'
@@ -105,8 +101,6 @@ describe('T-SHL-A 앱 셸 계약', () => {
       ),
       'utf8'
     );
-    expect(appShell).toContain("import dynamic from 'next/dynamic'");
-    expect(appShell).toContain('const OdokgongShell = dynamic(');
     expect(globals).toContain("@import './mvp-h-shell.css'");
     expect(globals).not.toContain('data-odok-shell');
     expect(quickMessage).toContain("messageText } from '@/entities/shell'");
