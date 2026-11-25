@@ -35,9 +35,8 @@ describe('시험 항목 S29 공유 링크 서버 메타(M-8)', () => {
   });
 
   it('S29-3 링크를 회수한 뒤에도 남지 않도록 캐시 없이(no-store) 조회한다 (교차 리뷰 P2-1)', async () => {
-    const fetchMock = vi.fn(
-      async (..._args: unknown[]) =>
-        new Response(JSON.stringify(body), { status: 200 })
+    const fetchMock = vi.fn<typeof fetch>(
+      async () => new Response(JSON.stringify(body), { status: 200 })
     );
     vi.stubGlobal('fetch', fetchMock);
     await fetchShareMetaOnServer('abc');
