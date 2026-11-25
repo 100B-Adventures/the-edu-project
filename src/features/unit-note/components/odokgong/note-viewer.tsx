@@ -17,7 +17,13 @@ type NoteViewerProps = {
   studentId?: number;
 };
 
-const SidePanel = ({ detail }: { detail: UnitNoteDetail }) => (
+const SidePanel = ({
+  detail,
+  showProblems,
+}: {
+  detail: UnitNoteDetail;
+  showProblems: boolean;
+}) => (
   <aside
     className="gap-block-gap flex flex-col"
     aria-label="노트 옆 패널"
@@ -43,25 +49,27 @@ const SidePanel = ({ detail }: { detail: UnitNoteDetail }) => (
         ))}
       </ul>
     </section>
-    <section className="border-line-line1 rounded-card p-card-pad gap-content-gap flex flex-col border bg-white">
-      <h2 className="font-body2-heading text-text-main">
-        이 개념 쓰는 문제 {detail.relatedProblems.length}
-      </h2>
-      <ul className="gap-content-gap flex flex-col">
-        {detail.relatedProblems.map((problem) => (
-          <li key={problem.wrongAnswerId}>
-            <Link
-              href={PRIVATE.DASHBOARD.WRONG_ANSWER_REVIEW(
-                problem.wrongAnswerId
-              )}
-              className="font-body2-normal text-gray-10 text-single-line"
-            >
-              {problem.title}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
+    {showProblems && (
+      <section className="border-line-line1 rounded-card p-card-pad gap-content-gap flex flex-col border bg-white">
+        <h2 className="font-body2-heading text-text-main">
+          이 개념 쓰는 문제 {detail.relatedProblems.length}
+        </h2>
+        <ul className="gap-content-gap flex flex-col">
+          {detail.relatedProblems.map((problem) => (
+            <li key={problem.wrongAnswerId}>
+              <Link
+                href={PRIVATE.DASHBOARD.WRONG_ANSWER_REVIEW(
+                  problem.wrongAnswerId
+                )}
+                className="font-body2-normal text-gray-10 text-single-line"
+              >
+                {problem.title}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
     <section className="border-line-line1 rounded-card p-card-pad border bg-white">
       <h2 className="font-body2-heading text-text-main">핀</h2>
       {/* 핀은 조각 2 능력이다. 지금은 입력 UI 없이 안내 문구만 둔다. */}
@@ -124,7 +132,10 @@ export const NoteViewer = ({ nodeId, studentId }: NoteViewerProps) => {
                 </li>
               ))}
             </ol>
-            <SidePanel detail={detail} />
+            <SidePanel
+              detail={detail}
+              showProblems={studentId === undefined}
+            />
           </div>
         )}
       </ScreenState>

@@ -3,6 +3,7 @@ import { isMvpHShellEnabled } from '@/shared/lib/mvp-h-slice';
 type NoticeTargetMetadata = {
   studyRoomId?: string;
   noticeId?: string;
+  messageId?: string;
 } | null;
 
 /**
@@ -15,7 +16,9 @@ export const getShellNoticeTarget = (
   metadata: NoticeTargetMetadata
 ): string | null => {
   if (!isMvpHShellEnabled()) return null;
-  if (category !== 'NOTICE') return null;
+  if (category !== 'STUDY_ROOM') return null;
   if (!metadata?.studyRoomId) return null;
-  return `/study-rooms/${metadata.studyRoomId}/notice`;
+  if (metadata.noticeId) return `/study-rooms/${metadata.studyRoomId}/notice`;
+  if (metadata.messageId) return '/dashboard/student';
+  return null;
 };

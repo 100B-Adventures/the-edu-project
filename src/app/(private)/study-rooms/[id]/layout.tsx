@@ -61,6 +61,12 @@ const StudyNoteLayout = ({ children }: LayoutProps) => {
     return <>{children}</>;
   }
 
+  // 기존 homework 중첩 layout 은 셸이 꺼졌을 때 이 layout 을 통째로 우회한다.
+  // 상세 여부보다 먼저 판정해야 /homework/:id 가 ColumnLayout 에 이중으로 감싸지지 않는다.
+  if (!isMvpHShellEnabled() && isHomeworkRoute) {
+    return <>{children}</>;
+  }
+
   if (isDetailPage) {
     return (
       <ColumnLayout className="desktop:p-6 items-start gap-6">
@@ -98,7 +104,7 @@ const StudyNoteLayout = ({ children }: LayoutProps) => {
     );
   }
 
-  // 기존 homework 중첩 layout 은 유지하되, shell 이 꺼졌거나 상세 주소일 때만 바깥 틀을 우회한다.
+  // 셸이 켜져 있어도 OfficeFrame 대상이 아닌 homework 경로는 기존 중첩 layout 에 맡긴다.
   if (isHomeworkRoute) {
     return <>{children}</>;
   }

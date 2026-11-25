@@ -3,6 +3,8 @@ import { buildShellNav } from '@/features/app-shell/model/nav-config';
 import { shellTitleForPath } from '@/features/app-shell/model/shell-title';
 import { pickTodayAction } from '@/features/today/model/pick-today-action';
 import { isMvpHShellEnabled } from '@/shared/lib/mvp-h-slice';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('T-SHL-A 앱 셸 계약', () => {
@@ -73,6 +75,67 @@ describe('T-SHL-A 앱 셸 계약', () => {
     expect(shellKeys.notices('student', 7)).not.toEqual(
       shellKeys.notices('teacher', 7)
     );
+  });
+
+  it('T-SHL-A5 셸 OFF의 homework 상세는 기존 중첩 layout을 먼저 사용한다', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'src/app/(private)/study-rooms/[id]/layout.tsx'),
+      'utf8'
+    );
+    const offGuard = source.indexOf(
+      'if (!isMvpHShellEnabled() && isHomeworkRoute)'
+    );
+    expect(offGuard).toBeGreaterThan(-1);
+    expect(offGuard).toBeLessThan(source.indexOf('if (isDetailPage)'));
+  });
+
+  it('T-SHL-A6 셸 코드가 지연 로딩되고 CSS와 메시지 모델이 기능 경계에 있다', () => {
+    const appShell = readFileSync(
+      join(process.cwd(), 'src/shared/components/app-shell/app-shell.tsx'),
+      'utf8'
+    );
+    const globals = readFileSync(
+      join(process.cwd(), 'src/styles/globals.css'),
+      'utf8'
+    );
+    const quickMessage = readFileSync(
+      join(
+        process.cwd(),
+        'src/features/teaching-lesson/components/student-detail/quick-message.tsx'
+      ),
+      'utf8'
+    );
+    expect(appShell).toContain("import dynamic from 'next/dynamic'");
+    expect(appShell).toContain('const OdokgongShell = dynamic(');
+    expect(globals).toContain("@import './mvp-h-shell.css'");
+    expect(globals).not.toContain('data-odok-shell');
+    expect(quickMessage).toContain("messageText } from '@/entities/shell'");
+    expect(quickMessage).not.toContain('@/features/today');
+  });
+
+  it('T-SHL-A7 404, 학부모 공지, 보상 숫자가 shell 계약을 따른다', () => {
+    const notFound = readFileSync(
+      join(process.cwd(), 'src/app/not-found.tsx'),
+      'utf8'
+    );
+    const noticePage = readFileSync(
+      join(
+        process.cwd(),
+        'src/features/study-rooms/components/office/notice-page.tsx'
+      ),
+      'utf8'
+    );
+    const performance = readFileSync(
+      join(
+        process.cwd(),
+        'src/features/performance/components/performance-page.tsx'
+      ),
+      'utf8'
+    );
+    expect(notFound).toContain('isMvpHShellEnabled');
+    expect(noticePage).toContain('status="forbidden"');
+    expect(performance).toContain('useAppPolicyQuery');
+    expect(performance).toContain('scoreTable.solutionReviseExp');
   });
 });
 

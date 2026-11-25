@@ -75,6 +75,68 @@ const LibrarySchema = z.object({
   detail: DetailSchema.nullable(),
 });
 
+const TeacherPageSchema = z.object({
+  pageId: IdSchema,
+  position: z.number(),
+  source: z.enum(['PEN', 'UPLOAD', 'TEACHER']),
+  fileName: z.string(),
+  mimeType: z.string().nullable(),
+  sizeBytes: z.number().nullable(),
+  viewUrl: z.string().nullable(),
+  cover: z.boolean(),
+  teacherMemo: z.string().nullable(),
+  createdAt: z.string().nullable(),
+});
+
+/** N7 전용 wire 계약을 기존 읽기 전용 뷰 모델로만 투영한다. */
+const TeacherLibrarySchema = z
+  .object({
+    totalPages: z.number(),
+    node: z.object({
+      nodeId: IdSchema,
+      displayName: z.string(),
+      pageCount: z.number(),
+    }),
+    detail: z.object({
+      nodeId: IdSchema,
+      pages: z.array(TeacherPageSchema),
+      teachingLayers: z.array(TeachingLayerSchema),
+    }),
+  })
+  .transform(({ totalPages, node, detail }) => ({
+    totalPages,
+    nodes: [
+      {
+        nodeId: node.nodeId,
+        parentId: null,
+        subject: '',
+        unit: '',
+        displayName: node.displayName,
+        depth: 0,
+        pageCount: node.pageCount,
+        penPageCount: 0,
+        uploadPageCount: 0,
+        teachingNoteCount: detail.teachingLayers.length,
+        relatedProblemCount: 0,
+        masteryScore: 0,
+        hintFreeSolveCount: 0,
+        leafLevel: node.pageCount > 0 ? ('LIT' as const) : ('GRAY' as const),
+        lastPageAt: null,
+        coverPage: null,
+      },
+    ],
+    detail: {
+      nodeId: detail.nodeId,
+      pages: detail.pages.map((page) => ({
+        ...page,
+        hiddenByStudent: false,
+        teacherId: null,
+      })),
+      teachingLayers: detail.teachingLayers,
+      relatedProblems: [],
+    },
+  }));
+
 const AppendPageSchema = z.object({
   source: z.enum(['PEN', 'UPLOAD']),
   mediaId: z.string().min(1),
@@ -101,6 +163,7 @@ const UpdatePayloadSchema = z
 
 export const dto = {
   library: LibrarySchema,
+  teacherLibrary: TeacherLibrarySchema,
 };
 
 export const payload = {

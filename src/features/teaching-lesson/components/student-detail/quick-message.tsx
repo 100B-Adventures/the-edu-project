@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 
+import { messageText } from '@/entities/shell';
 import {
   useSendMessageMutation,
   useSentMessagesQuery,
 } from '@/features/app-shell/hooks/use-shell-queries';
-import { messageText } from '@/features/today/components/received-list';
 import { Button, Textarea, showBottomToast } from '@/shared/components/ui';
 
 const TEMPLATES = [

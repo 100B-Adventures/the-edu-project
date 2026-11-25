@@ -1,6 +1,7 @@
 /* Wanted Sans는 layout <head>의 stylesheet로 로드한다.
    로드 실패 시 로컬 Pretendard가 앱 글꼴의 안전한 폴백이다. */
 @import 'tailwindcss' source(none);
+@import './mvp-h-shell.css';
 @source '../';
 
 :root {
@@ -202,15 +203,6 @@ body:has([data-private-role='ROLE_STUDENT']) [data-global-header] {
 }
 
 body:has([data-private-role='ROLE_STUDENT']) [data-root-content] {
-  margin-top: 0;
-}
-
-/* mvp-h shell: 새 앱 틀은 자기 상단 바가 있어 전역 헤더를 모든 폭에서 숨긴다. */
-body:has([data-odok-shell]) [data-global-header] {
-  display: none;
-}
-
-body:has([data-odok-shell]) [data-root-content] {
   margin-top: 0;
 }
 
@@ -526,12 +518,6 @@ body {
   /* 태블릿(768~1199px) 전역 사이드바 = 아이콘 레일(흐름 안, 본문 안 덮음). 근거: mvp-e-v1.1.0-풀이화면-v2 시안, Material 3 navigation-rail guideline */
   --spacing-sidebar-rail-width: 72px;
   --spacing-grid-margin: 20px;
-  /* mvp-h shell(오독공 앱 틀): 1024 이상 사이드바, 미만 하단 탭. 수치 = design-spec 표 */
-  --spacing-odok-sidebar-width: 208px;
-  --spacing-odok-topbar-height: 64px;
-  --spacing-odok-topbar-height-mobile: 56px;
-  --spacing-odok-tabbar-height: 64px;
-
   /* ========================================
     간격 스케일 (승인 프로토타입 v22 실측)
     근거: docs/mvp-g/design-spec-v22.md §1.3

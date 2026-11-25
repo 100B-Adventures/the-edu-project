@@ -15,7 +15,7 @@ const NotificationCategorySchema = z.enum([
 /**
  * targetMetadata: 카테고리별 메타데이터
  * - QNA: qnaId, studyRoomId
- * - STUDY_ROOM: studyRoomId
+ * - STUDY_ROOM: studyRoomId + noticeId 또는 messageId
  * - TEACHING_NOTE: teachingNoteId
  * - HOMEWORK: homeworkId
  * - COLUMN_ARTICLE: articleId, title
@@ -29,6 +29,7 @@ const TargetMetadataSchema = z.object({
   teachingNoteId: z.string().optional(),
   homeworkId: z.string().optional(),
   noticeId: z.string().optional(),
+  messageId: z.string().optional(),
   articleId: z.string().optional(),
   inquiryId: z.string().optional(),
   title: z.string().optional(),

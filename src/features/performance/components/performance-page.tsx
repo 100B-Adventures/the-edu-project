@@ -5,7 +5,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 
 import type { PeriodBlock } from '@/entities/shell';
-import { useGrowthPeriodsQuery } from '@/features/app-shell/hooks/use-shell-queries';
+import {
+  useAppPolicyQuery,
+  useGrowthPeriodsQuery,
+} from '@/features/app-shell/hooks/use-shell-queries';
 import { monthDayLabel } from '@/features/app-shell/model/format';
 import { useWeeklyRetrospectQuery } from '@/features/dashboard/hooks/use-retrospect-query';
 import { ScreenState } from '@/shared/components/screen-state';
@@ -31,6 +34,7 @@ const isFirstDay = (block: PeriodBlock) =>
 export const PerformancePage = () => {
   const [period, setPeriod] = useState<PeriodId>('week');
   const periodsQuery = useGrowthPeriodsQuery();
+  const policyQuery = useAppPolicyQuery();
   const retroQuery = useWeeklyRetrospectQuery();
   const block = periodsQuery.data?.[period];
 
@@ -86,7 +90,13 @@ export const PerformancePage = () => {
                 tone="brand"
                 label="경험치"
                 value={block.exp}
-                sub={period === 'total' ? '오독공 활동 기준' : undefined}
+                sub={
+                  period === 'total'
+                    ? '오독공 활동 기준'
+                    : policyQuery.data
+                      ? `풀이 고치기 +${policyQuery.data.scoreTable.solutionReviseExp} EXP`
+                      : undefined
+                }
               />
             </div>
             <WeeklyPagesChart weeks={periodsQuery.data?.weeklyPages ?? []} />

@@ -18,8 +18,16 @@ const CATEGORY_TO_KOREAN: Record<string, string> = {
   INQUIRY: '문의',
 };
 
-const getCategoryKorean = (category: string): string =>
-  CATEGORY_TO_KOREAN[category as keyof typeof CATEGORY_TO_KOREAN] || '기타';
+const getCategoryKorean = (
+  category: string,
+  metadata: { noticeId?: string; messageId?: string } | null
+): string => {
+  if (category === 'STUDY_ROOM' && metadata?.noticeId) return '공지';
+  if (category === 'STUDY_ROOM' && metadata?.messageId) return '선생님 메시지';
+  return (
+    CATEGORY_TO_KOREAN[category as keyof typeof CATEGORY_TO_KOREAN] || '기타'
+  );
+};
 
 /* ─────────────────────────────────────────────────────
  * category -> URL 변환 매핑
@@ -32,6 +40,7 @@ const getTargetUrl = (
     teachingNoteId?: string;
     noticeId?: string;
     homeworkId?: string;
+    messageId?: string;
     articleId?: string;
     inquiryId?: string;
     title?: string;
@@ -43,7 +52,10 @@ const getTargetUrl = (
     case 'TEACHING_NOTE':
       return `/study-rooms/${metadata.studyRoomId}/note/${metadata.teachingNoteId}`;
     case 'STUDY_ROOM':
-      return `/study-rooms/${metadata.studyRoomId}/note`;
+      return (
+        getShellNoticeTarget(category, metadata) ??
+        `/study-rooms/${metadata.studyRoomId}/note`
+      );
     case 'QNA':
       return `/study-rooms/${metadata.studyRoomId}/qna/${metadata.qnaId}`;
     case 'HOMEWORK':
@@ -53,7 +65,7 @@ const getTargetUrl = (
     case 'INQUIRY':
       return `/inquiry/${metadata.inquiryId}`;
     case 'NOTICE':
-      return getShellNoticeTarget(category, metadata);
+      return null;
     case 'SYSTEM':
     default:
       return null;
@@ -90,7 +102,10 @@ const NotificationShape = dto.schema
  * ────────────────────────────────────────────────────*/
 const NotificationSchema = NotificationShape.transform((notification) => ({
   ...notification,
-  categoryKorean: getCategoryKorean(notification.category),
+  categoryKorean: getCategoryKorean(
+    notification.category,
+    notification.targetMetadata
+  ),
   targetUrl: getTargetUrl(notification.category, notification.targetMetadata),
   relativeTime: formatDistanceToNow(notification.regDate, {
     addSuffix: true,
