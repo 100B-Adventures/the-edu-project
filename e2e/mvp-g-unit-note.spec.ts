@@ -32,6 +32,7 @@ const nodes: UnitNoteNode[] = [
     hintFreeSolveCount: 0,
     leafLevel: 'DEEP',
     coverPage: null,
+    lastPageAt: null,
   },
   ...[
     ['arithmetic_sequence', '등차수열', 11, 1],
@@ -55,6 +56,7 @@ const nodes: UnitNoteNode[] = [
       hintFreeSolveCount: nodeId === 14 ? 1 : 0,
       leafLevel:
         Number(pageCount) === 0 ? 'GRAY' : nodeId === 14 ? 'DEEP' : 'LIT',
+      lastPageAt: null,
       coverPage:
         Number(pageCount) === 0
           ? null

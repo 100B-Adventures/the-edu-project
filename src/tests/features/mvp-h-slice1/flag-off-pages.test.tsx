@@ -83,7 +83,10 @@ describe('시험 항목 S26 플래그 꺼짐에서는 새 URL 이 열리지 않�
           await import(
             '@/app/(private)/dashboard/teacher/students/[studentId]/page'
           )
-        ).default(params({ studentId: '1' })),
+        ).default({
+          ...params({ studentId: '1' }),
+          searchParams: Promise.resolve({}),
+        }),
     ],
     [
       '공유 링크',

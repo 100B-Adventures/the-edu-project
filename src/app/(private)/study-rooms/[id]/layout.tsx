@@ -7,11 +7,15 @@ import { useParams, usePathname, useRouter } from 'next/navigation';
 import { StudyNoteTab } from '@/features/study-notes/components/study-note-tab';
 import { StudyNoteTabShell } from '@/features/study-notes/components/study-note-tab-shell';
 import { StudyNoteGroupContext } from '@/features/study-notes/contexts/study-note-group.context';
+import { OfficeFrame } from '@/features/study-rooms/components/office/office-frame';
 import { StudyroomSidebar } from '@/features/study-rooms/components/sidebar';
 import { ColumnLayout } from '@/layout/column-layout';
 import { useRole } from '@/shared/hooks/use-role';
-import { isMvpHSliceEnabled } from '@/shared/lib/mvp-h-slice';
 import { cn } from '@/shared/lib';
+import {
+  isMvpHShellEnabled,
+  isMvpHSliceEnabled,
+} from '@/shared/lib/mvp-h-slice';
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -57,8 +61,9 @@ const StudyNoteLayout = ({ children }: LayoutProps) => {
     return <>{children}</>;
   }
 
-  // homework routes are handled by /homework/layout.tsx
-  if (isHomeworkRoute) {
+  // 기존 homework 중첩 layout 은 셸이 꺼졌을 때 이 layout 을 통째로 우회한다.
+  // 상세 여부보다 먼저 판정해야 /homework/:id 가 ColumnLayout 에 이중으로 감싸지지 않는다.
+  if (!isMvpHShellEnabled() && isHomeworkRoute) {
     return <>{children}</>;
   }
 
@@ -68,6 +73,40 @@ const StudyNoteLayout = ({ children }: LayoutProps) => {
         {children}
       </ColumnLayout>
     );
+  }
+
+  // mvp-h shell: 켜면 교무실 틀(머리 카드·탭 넷·방 메뉴 서랍). 방 안 왼쪽 사이드바는 서랍으로 들어간다.
+  const isOfficeSegment =
+    segment === 'note' ||
+    segment === 'homework' ||
+    segment === 'lesson' ||
+    segment === 'qna' ||
+    segment === 'notice';
+  if (
+    isMvpHShellEnabled() &&
+    isOfficeSegment &&
+    (role === 'ROLE_TEACHER' || role === 'ROLE_STUDENT')
+  ) {
+    return (
+      <StudyNoteGroupContext.Provider
+        value={{ selectedGroupId, setSelectedGroupId }}
+      >
+        <OfficeFrame
+          studyRoomId={studyRoomId}
+          role={role === 'ROLE_TEACHER' ? 'teacher' : 'student'}
+          segment={segment!}
+          selectedGroupId={selectedGroupId}
+          onSelectGroup={setSelectedGroupId}
+        >
+          {children}
+        </OfficeFrame>
+      </StudyNoteGroupContext.Provider>
+    );
+  }
+
+  // 셸이 켜져 있어도 OfficeFrame 대상이 아닌 homework 경로는 기존 중첩 layout 에 맡긴다.
+  if (isHomeworkRoute) {
+    return <>{children}</>;
   }
 
   return (

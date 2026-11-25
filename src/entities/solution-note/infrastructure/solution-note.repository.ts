@@ -63,8 +63,15 @@ const getHistory = async (challengeId: number) => {
   return unwrapEnvelope(response, dto.history);
 };
 
+/** GET /api/student/solution-notes?nodeId= (N10). 그 단원 하위 문제의 내 풀이노트, 최신순. */
+const getHistoryByNode = async (nodeId: number) => {
+  const response = await api.private.get(BASE, { params: { nodeId } });
+  return unwrapEnvelope(response, dto.history);
+};
+
 export const solutionNoteRepository = {
   getHistory,
+  getHistoryByNode,
   create,
   getDetail,
   getExplanation,

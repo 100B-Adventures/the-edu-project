@@ -1,0 +1,16 @@
+@theme {
+  /* mvp-h shell: 1024 이상 사이드바, 미만 하단 탭. 수치 = design-spec 표. */
+  --spacing-odok-sidebar-width: 208px;
+  --spacing-odok-topbar-height: 64px;
+  --spacing-odok-topbar-height-mobile: 56px;
+  --spacing-odok-tabbar-height: 64px;
+}
+
+/* 새 앱 틀은 자기 상단 바가 있어 전역 헤더를 모든 폭에서 숨긴다. */
+body:has([data-odok-shell]) [data-global-header] {
+  display: none;
+}
+
+body:has([data-odok-shell]) [data-root-content] {
+  margin-top: 0;
+}

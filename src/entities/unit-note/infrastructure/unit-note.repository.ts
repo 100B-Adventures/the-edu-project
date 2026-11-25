@@ -17,6 +17,18 @@ const getLibrary = async (nodeId?: number): Promise<UnitNoteLibrary> => {
   return unwrapEnvelope(response, dto.library);
 };
 
+/** N7: 같은 방 학생의 노트를 선생님이 읽는다(읽기 전용). 방이 다르면 서버가 403 을 준다. */
+const getStudentLibrary = async (
+  studentId: number,
+  nodeId: number
+): Promise<UnitNoteLibrary> => {
+  const response = await api.private.get(
+    `/teacher/students/${studentId}/unit-notes`,
+    { params: { nodeId } }
+  );
+  return unwrapEnvelope(response, dto.teacherLibrary);
+};
+
 const appendPages = async (
   nodeId: number,
   input: AppendUnitNotePagesPayload
@@ -87,6 +99,7 @@ const uploadPageFile = async (file: File): Promise<UnitNoteUploadResult> => {
 
 export const repository = {
   getLibrary,
+  getStudentLibrary,
   appendPages,
   updatePage,
   deletePage,

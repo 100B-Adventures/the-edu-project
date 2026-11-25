@@ -58,4 +58,32 @@ describe('unit-note DTO contract', () => {
     expect(() => payload.append.parse({ pages: [] })).toThrow();
     expect(() => payload.update.parse({})).toThrow();
   });
+
+  it('선생님 N7 단원 단건 응답은 오답과 숙련도 없이 읽기 뷰로 투영한다', () => {
+    const parsed = dto.teacherLibrary.parse({
+      totalPages: 1,
+      node: { nodeId: 11, displayName: '수학적 귀납법', pageCount: 1 },
+      detail: {
+        nodeId: 11,
+        pages: [
+          {
+            pageId: 101,
+            position: 1,
+            source: 'UPLOAD',
+            fileName: '노트.png',
+            mimeType: 'image/png',
+            sizeBytes: 1024,
+            viewUrl: 'https://example.test/note.png',
+            cover: true,
+            teacherMemo: null,
+            createdAt: '2026-11-25T20:00:00',
+          },
+        ],
+        teachingLayers: [],
+      },
+    });
+    expect(parsed.nodes).toHaveLength(1);
+    expect(parsed.detail?.relatedProblems).toEqual([]);
+    expect(parsed.detail?.pages[0]?.hiddenByStudent).toBe(false);
+  });
 });

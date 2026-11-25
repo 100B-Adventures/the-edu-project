@@ -1,8 +1,10 @@
 'use client';
 
+import { OdokgongShell } from '@/features/app-shell/components/odokgong-shell';
 import { DashboardSidebar } from '@/features/dashboard/components/dashboard-sidebar';
 import { useSession } from '@/providers';
 import { cn } from '@/shared/lib';
+import { isMvpHShellEnabled } from '@/shared/lib/mvp-h-slice';
 
 /**
  * 공개(비회원도 접근 가능) 페이지를 위한 조건부 사이드바 셸.
@@ -30,6 +32,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { member, status } = useSession();
   const isAuthenticated = status === 'authenticated';
   const role = member?.role;
+
+  // mvp-h shell: 켜면 로그인한 학생·선생님은 새 앱 틀. 비로그인·학부모·관리자는 아래 기존 틀.
+  if (
+    isMvpHShellEnabled() &&
+    isAuthenticated &&
+    (role === 'ROLE_STUDENT' || role === 'ROLE_TEACHER')
+  ) {
+    return <OdokgongShell role={role}>{children}</OdokgongShell>;
+  }
 
   return (
     <div

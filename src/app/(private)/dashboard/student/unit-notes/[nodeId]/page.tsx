@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
+import { NoteViewer } from '@/features/unit-note/components/odokgong/note-viewer';
 import { UnitNoteRoom } from '@/features/unit-note/components/unit-note-room';
+import { isMvpHShellEnabled } from '@/shared/lib/mvp-h-slice';
 
 export const metadata: Metadata = {
   title: '단권화 방 | 대치동',
@@ -22,7 +24,12 @@ const StudentUnitNoteRoomPage = async ({
     notFound();
   }
 
-  return <UnitNoteRoom rootNodeId={parsedNodeId} />;
+  // mvp-h shell: 켜면 노트 보기(쪽 + 오른쪽 패널), 끄면 기존 단권화 방 그대로.
+  return isMvpHShellEnabled() ? (
+    <NoteViewer nodeId={parsedNodeId} />
+  ) : (
+    <UnitNoteRoom rootNodeId={parsedNodeId} />
+  );
 };
 
 export default StudentUnitNoteRoomPage;

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { useSession } from '@/providers/session/session-context';
 import { cn } from '@/shared/lib';
+import { isMvpHShellEnabled } from '@/shared/lib/mvp-h-slice';
 
 import { RoleBottomNavigation } from './role-bottom-navigation';
 
@@ -14,6 +15,14 @@ export const GlobalRoleNavigationShell = ({
 }) => {
   const session = useSession();
   const role = session.member?.role;
+
+  // mvp-h shell: 켜면 학생·선생님의 하단 메뉴는 OdokgongShell 의 하단 탭이 그린다.
+  if (
+    isMvpHShellEnabled() &&
+    (role === 'ROLE_STUDENT' || role === 'ROLE_TEACHER')
+  ) {
+    return <>{children}</>;
+  }
 
   return (
     <>
