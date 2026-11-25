@@ -5,6 +5,7 @@ import Script from 'next/script';
 import { DesktopSiteNotice } from '@/app/_components/desktop-site-notice';
 import { PwaRegister } from '@/app/_components/pwa-register';
 import { StaleVersionReload } from '@/app/_components/stale-version-reload';
+import { StrokesOutboxDrain } from '@/app/_components/strokes-outbox-drain';
 import { SITE_CONFIG } from '@/config/site';
 import { GlobalRoleNavigationShell } from '@/features/dashboard/components/global-role-navigation-shell';
 import { Header } from '@/layout/header';
@@ -124,6 +125,7 @@ export default function RootLayout({
         )}
         <GlobalProvider>
           <Header />
+          <StrokesOutboxDrain />
           <GlobalRoleNavigationShell>{children}</GlobalRoleNavigationShell>
         </GlobalProvider>
         <PwaRegister />

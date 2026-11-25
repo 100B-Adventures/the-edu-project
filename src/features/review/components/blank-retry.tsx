@@ -192,13 +192,11 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      // 동의 확인이 업로드보다 먼저다(D-128). 동의하지 않으면 올리지 않고 멈춘다.
-      if (!(await ensureConsent())) {
-        showBottomToast('손글씨 저장에 동의해야 다 풀었어요를 보낼 수 있어요.');
-        return;
-      }
-      const handwriting = await handwritingRepository.uploadHandwriting({
+      // 동의 확인이 업로드보다 먼저다(D-128). 동의하지 않으면 획 좌표만 빼고 PNG 한 장으로 보낸다(FDD §5.1).
+      let strokesSaved = await ensureConsent();
+      let handwriting = await handwritingRepository.uploadHandwriting({
         strokes,
+        pngOnly: !strokesSaved,
       });
       const payload = {
         blankSessionId: sessionId,
@@ -213,17 +211,22 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
         saved = await finishMutation.mutateAsync(payload);
       } catch (error) {
         if (getApiError(error)?.code !== 'CONSENT_REQUIRED') throw error;
-        // 동의 버전이 바뀐 경우: 다시 묻고, 올려 둔 손글씨를 재사용해 한 번 더 보낸다.
-        if (!(await ensureConsent(true))) {
-          showBottomToast(
-            '손글씨 저장에 동의해야 다 풀었어요를 보낼 수 있어요.'
-          );
-          return;
+        // 동의 버전이 바뀐 경우: 다시 묻는다. 거절해도 멈추지 않고 획 없는 PNG 로 다시 보낸다(2회차 P1-5).
+        const before = strokesSaved;
+        strokesSaved = await ensureConsent(true);
+        if (before !== strokesSaved) {
+          handwriting = await handwritingRepository.uploadHandwriting({
+            strokes,
+            pngOnly: !strokesSaved,
+          });
+          payload.handwriting = handwriting;
         }
         saved = await finishMutation.mutateAsync(payload);
       }
-      // 획 업로드만 실패해 PNG 로 저장됐다면 보관함에 넣고 다시 붙인다(교차 리뷰 P1-9).
-      await settleDeferredStrokes(handwriting, saved.handwriting, strokes);
+      // 획 업로드만 실패해 PNG 로 저장됐다면 보관함에 넣고 다시 붙인다(교차 리뷰 P1-9). 획을 올리지 않은 저장은 건너뛴다.
+      if (strokesSaved) {
+        await settleDeferredStrokes(handwriting, saved.handwriting, strokes);
+      }
       setResult(saved);
     } catch (error) {
       const code = getApiError(error)?.code ?? '';

@@ -4,6 +4,7 @@ import {
 } from '@/features/solution-note/components/solution-note-view';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { AxiosError } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithQuery } from './helpers';
@@ -16,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   getConsent: vi.fn(),
   grant: vi.fn(),
   upload: vi.fn(),
+  settle: vi.fn(),
 }));
 
 vi.mock('@/entities/handwriting', () => ({
@@ -25,7 +27,7 @@ vi.mock('@/entities/handwriting', () => ({
     uploadHandwriting: mocks.upload,
     fetchStrokes: vi.fn(),
   },
-  settleDeferredStrokes: vi.fn(),
+  settleDeferredStrokes: mocks.settle,
   flushStrokesOutbox: vi.fn(),
 }));
 
@@ -216,16 +218,116 @@ describe('시험 항목 S21 제출 뒤 두 칸 풀이노트', () => {
   const revisions = () =>
     mocks.post.mock.calls.filter((c) => String(c[0]).endsWith('/revisions'));
 
-  it('S21-8 거절: 동의가 없고 나중에 를 누르면 손글씨를 올리지도 저장을 보내지도 않는다', async () => {
+  const PNG_ONLY_REF = {
+    pngMediaId: 1,
+    strokesMediaId: null,
+    strokesDeferred: false,
+    strokeCount: 0,
+    strokeBytes: 0,
+    strokesSha256: null,
+    pngSha256: 'b'.repeat(64),
+    schemaVersion: 1,
+    layoutWidth: 1024,
+    layoutHeight: 1400,
+  };
+  const REVISED = {
+    versionNo: 2,
+    changed: true,
+    handwriting: { assetId: 1, strokesPending: false },
+    reward: { granted: false, reason: 'ALREADY_REWARDED_TODAY' },
+  };
+
+  it('S21-8 거절: 동의가 없고 나중에 를 누르면 획 좌표 없이 PNG 한 장으로 고친 풀이를 저장한다 (2회차 P1-5)', async () => {
     mocks.getConsent.mockResolvedValue({ granted: false });
+    mocks.upload.mockResolvedValue(PNG_ONLY_REF);
+    mocks.post.mockImplementation((url: string) =>
+      url.endsWith('/explanation')
+        ? Promise.resolve(EXPLANATION)
+        : Promise.resolve(REVISED)
+    );
     const user = await openFixing();
     await user.click(screen.getByTestId('note-save-fix'));
     await user.click(await screen.findByTestId('consent-decline'));
-    await waitFor(() =>
-      expect(screen.queryByTestId('consent-dialog')).not.toBeInTheDocument()
+    await waitFor(() => expect(revisions()).toHaveLength(1));
+    expect(mocks.upload).toHaveBeenCalledWith(
+      expect.objectContaining({ pngOnly: true })
     );
-    expect(mocks.upload).not.toHaveBeenCalled();
-    expect(revisions()).toHaveLength(0);
+    const body = revisions()[0]![1] as {
+      handwriting: { strokesMediaId: number | null };
+    };
+    expect(body.handwriting.strokesMediaId).toBeNull();
+    // 획을 올리지 않았으니 보관함 재첨부도 하지 않는다.
+    expect(mocks.settle).not.toHaveBeenCalled();
+  });
+
+  it('S21-8b 동의가 있으면 획까지 올린다(pngOnly 가 아니다)', async () => {
+    mocks.upload.mockResolvedValue({
+      ...PNG_ONLY_REF,
+      strokesMediaId: 2,
+      strokeCount: 3,
+      strokeBytes: 100,
+      strokesSha256: 'a'.repeat(64),
+    });
+    mocks.post.mockImplementation((url: string) =>
+      url.endsWith('/explanation')
+        ? Promise.resolve(EXPLANATION)
+        : Promise.resolve(REVISED)
+    );
+    const user = await openFixing();
+    await user.click(screen.getByTestId('note-save-fix'));
+    await waitFor(() => expect(revisions()).toHaveLength(1));
+    expect(mocks.upload).toHaveBeenCalledWith(
+      expect.objectContaining({ pngOnly: false })
+    );
+    await waitFor(() => expect(mocks.settle).toHaveBeenCalledTimes(1));
+  });
+
+  it('S21-8c 서버가 동의문 버전 변경(CONSENT_REQUIRED)을 주고 다시 거절하면 획 없는 PNG 로 다시 올려 보낸다', async () => {
+    mocks.upload
+      .mockResolvedValueOnce({
+        ...PNG_ONLY_REF,
+        strokesMediaId: 2,
+        strokeCount: 3,
+        strokeBytes: 100,
+        strokesSha256: 'a'.repeat(64),
+      })
+      .mockResolvedValueOnce(PNG_ONLY_REF);
+    let revisionCalls = 0;
+    mocks.post.mockImplementation((url: string) => {
+      if (url.endsWith('/explanation')) return Promise.resolve(EXPLANATION);
+      revisionCalls += 1;
+      if (revisionCalls === 1) {
+        return Promise.reject(
+          new AxiosError('x', '400', undefined, undefined, {
+            status: 400,
+            data: {
+              code: 'CONSENT_REQUIRED',
+              message: '동의 필요',
+              data: { consentType: 'HANDWRITING_STORE' },
+            },
+            statusText: '',
+            headers: {},
+            config: {} as never,
+          })
+        );
+      }
+      return Promise.resolve(REVISED);
+    });
+    const user = await openFixing();
+    await user.click(screen.getByTestId('note-save-fix'));
+    // 처음엔 동의가 있어 획까지 올린다. 서버가 버전 변경을 알려 다시 물으면 거절한다.
+    mocks.getConsent.mockResolvedValue({ granted: false });
+    await user.click(await screen.findByTestId('consent-decline'));
+    await waitFor(() => expect(revisions()).toHaveLength(2));
+    expect(mocks.upload).toHaveBeenCalledTimes(2);
+    expect(mocks.upload).toHaveBeenLastCalledWith(
+      expect.objectContaining({ pngOnly: true })
+    );
+    const second = revisions()[1]![1] as {
+      handwriting: { strokesMediaId: number | null };
+    };
+    expect(second.handwriting.strokesMediaId).toBeNull();
+    expect(mocks.settle).not.toHaveBeenCalled();
   });
 
   it('S21-9 거절: 업로드가 끝나기 전 저장을 연달아 눌러도 저장 요청은 한 번만 나간다', async () => {

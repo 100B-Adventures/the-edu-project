@@ -146,22 +146,92 @@ describe('시험 항목 S23 백지에 다시 풀기', () => {
     expect(finishes).toHaveLength(1);
   });
 
-  it('S23-8 거절: 동의가 없고 나중에 를 누르면 손글씨를 올리지도 마무리를 보내지도 않는다', async () => {
+  const PNG_ONLY_REF = {
+    pngMediaId: 1,
+    strokesMediaId: null,
+    strokesDeferred: false,
+    strokeCount: 0,
+    strokeBytes: 0,
+    strokesSha256: null,
+    pngSha256: 'b'.repeat(64),
+    schemaVersion: 1,
+    layoutWidth: 1024,
+    layoutHeight: 1400,
+  };
+  const finishes = () =>
+    mocks.post.mock.calls.filter((c) =>
+      String(c[0]).endsWith('/blank-retries')
+    );
+
+  it('S23-8 거절: 동의가 없고 나중에 를 누르면 획 좌표 없이 PNG 한 장으로 다 풀었어요를 보낸다 (2회차 P1-5)', async () => {
     const user = userEvent.setup();
     mocks.getConsent.mockResolvedValue({ granted: false });
+    mocks.upload.mockResolvedValue(PNG_ONLY_REF);
     renderWithQuery(<BlankRetry wrongAnswerId={501} />);
     await user.click((await screen.findAllByTestId('blank-choice'))[1]!);
     await user.click(screen.getByTestId('blank-submit'));
     await user.click(await screen.findByTestId('consent-decline'));
     await waitFor(() =>
-      expect(screen.queryByTestId('consent-dialog')).not.toBeInTheDocument()
+      expect(screen.getByTestId('blank-reward')).toBeInTheDocument()
     );
-    expect(mocks.upload).not.toHaveBeenCalled();
-    expect(
-      mocks.post.mock.calls.filter((c) =>
-        String(c[0]).endsWith('/blank-retries')
-      )
-    ).toHaveLength(0);
+    expect(mocks.upload).toHaveBeenCalledWith(
+      expect.objectContaining({ pngOnly: true })
+    );
+    expect(finishes()).toHaveLength(1);
+    const body = finishes()[0]![1] as {
+      handwriting: { strokesMediaId: number | null };
+    };
+    expect(body.handwriting.strokesMediaId).toBeNull();
+  });
+
+  it('S23-8b 서버가 동의문 버전 변경(CONSENT_REQUIRED)을 주고 다시 거절하면 획 없는 PNG 로 다시 올려 보낸다', async () => {
+    const user = userEvent.setup();
+    mocks.upload
+      .mockResolvedValueOnce({
+        ...PNG_ONLY_REF,
+        strokesMediaId: 2,
+        strokeCount: 3,
+        strokeBytes: 100,
+        strokesSha256: 'a'.repeat(64),
+      })
+      .mockResolvedValueOnce(PNG_ONLY_REF);
+    let finishCalls = 0;
+    mocks.post.mockImplementation((url: string) => {
+      if (url.endsWith('/blank-sessions')) {
+        return Promise.resolve({ blankSessionId: 88, dueNow: true });
+      }
+      finishCalls += 1;
+      if (finishCalls === 1) {
+        return Promise.reject(
+          new AxiosError('x', '400', undefined, undefined, {
+            status: 400,
+            data: {
+              code: 'CONSENT_REQUIRED',
+              message: '동의 필요',
+              data: { consentType: 'HANDWRITING_STORE' },
+            },
+            statusText: '',
+            headers: {},
+            config: {} as never,
+          })
+        );
+      }
+      return Promise.resolve(RESULT);
+    });
+    renderWithQuery(<BlankRetry wrongAnswerId={501} />);
+    await user.click((await screen.findAllByTestId('blank-choice'))[1]!);
+    await user.click(screen.getByTestId('blank-submit'));
+    mocks.getConsent.mockResolvedValue({ granted: false });
+    await user.click(await screen.findByTestId('consent-decline'));
+    await waitFor(() => expect(finishes()).toHaveLength(2));
+    expect(mocks.upload).toHaveBeenCalledTimes(2);
+    expect(mocks.upload).toHaveBeenLastCalledWith(
+      expect.objectContaining({ pngOnly: true })
+    );
+    const second = finishes()[1]![1] as {
+      handwriting: { strokesMediaId: number | null };
+    };
+    expect(second.handwriting.strokesMediaId).toBeNull();
   });
 
   it('S23-9 동의가 없으면 창에서 동의를 기록한 뒤에 업로드하고 마무리를 보낸다', async () => {

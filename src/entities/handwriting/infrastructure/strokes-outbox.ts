@@ -144,3 +144,61 @@ export const settleDeferredStrokes = async (
   void flushStrokesOutbox();
   return true;
 };
+
+const DRAIN_BACKOFF_START_MS = 30_000;
+const DRAIN_BACKOFF_MAX_MS = 10 * 60_000;
+
+/**
+ * 보관함을 앱 전체에서 비운다(교차 리뷰 2회차 P1-6). 풀이노트 화면을 다시 열지 않아도 백지 결과에서 N회독 홈으로
+ * 넘어간 뒤 온라인으로 돌아오거나 새로고침해도 획이 서버에 붙게 한다.
+ * - 시작하자마자 한 번 비운다(새로고침·앱 시작).
+ * - 온라인으로 돌아오거나(online) 탭이 다시 보이면(visibilitychange) 바로 비운다.
+ * - 아직 남았으면 30초부터 두 배씩(최대 10분) 늦춰 가며 다시 시도한다.
+ * 돌려주는 함수를 부르면 멈춘다(로그아웃·화면 정리).
+ */
+export const startOutboxDrain = (): (() => void) => {
+  let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let delay = DRAIN_BACKOFF_START_MS;
+
+  const clearTimer = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+  };
+  const run = async () => {
+    clearTimer();
+    if (stopped) return;
+    await flushStrokesOutbox();
+    let remaining = 0;
+    try {
+      remaining = (await getStore().getAll()).length;
+    } catch {
+      remaining = 0;
+    }
+    if (stopped) return;
+    if (remaining > 0) {
+      timer = setTimeout(() => void run(), delay);
+      delay = Math.min(delay * 2, DRAIN_BACKOFF_MAX_MS);
+    } else {
+      delay = DRAIN_BACKOFF_START_MS;
+    }
+  };
+  const onOnline = () => {
+    delay = DRAIN_BACKOFF_START_MS;
+    void run();
+  };
+  const onVisible = () => {
+    if (document.visibilityState === 'visible') void run();
+  };
+
+  window.addEventListener('online', onOnline);
+  document.addEventListener('visibilitychange', onVisible);
+  void run();
+
+  return () => {
+    stopped = true;
+    clearTimer();
+    window.removeEventListener('online', onOnline);
+    document.removeEventListener('visibilitychange', onVisible);
+  };
+};
