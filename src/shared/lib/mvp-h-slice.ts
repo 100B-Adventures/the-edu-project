@@ -14,3 +14,17 @@ export const isMvpHSliceEnabled = (): boolean => {
   const appEnv = process.env.NEXT_PUBLIC_APP_ENV;
   return appEnv === 'dev' || appEnv === 'preview';
 };
+
+/**
+ * mvp-h(오독공) shell 조각 노출 스위치. 켜면 새 앱 틀(OdokgongShell)과 12화면이 보인다.
+ * 규칙은 조각 1 스위치와 같다: 'on' 켠다, 'off' 끈다, 값이 없으면 dev·preview 에서만 켠다.
+ * 끄면 기존 DashboardSidebar·StudyroomSidebar 와 모든 주소가 그대로다.
+ * NEXT_PUBLIC_ 값은 빌드 때 박히므로 process.env 를 리터럴로 읽는다.
+ */
+export const isMvpHShellEnabled = (): boolean => {
+  const flag = process.env.NEXT_PUBLIC_MVPH_SHELL;
+  if (flag === 'on') return true;
+  if (flag === 'off') return false;
+  const appEnv = process.env.NEXT_PUBLIC_APP_ENV;
+  return appEnv === 'dev' || appEnv === 'preview';
+};

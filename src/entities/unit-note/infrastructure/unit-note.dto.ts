@@ -17,6 +17,8 @@ const NodeSchema = z.object({
   masteryScore: z.number(),
   hintFreeSolveCount: z.number(),
   leafLevel: z.enum(['GRAY', 'LIT', 'DEEP']),
+  /** 마지막 쪽을 올린 시각. 서버가 아직 안 주면 없다. */
+  lastPageAt: z.string().nullable().optional().default(null),
   coverPage: z
     .object({
       pageId: IdSchema,

@@ -1,3 +1,4 @@
+import { getShellNoticeTarget } from '@/entities/notification/core/notification-target';
 import { dto } from '@/entities/notification/infrastructure';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -52,6 +53,7 @@ const getTargetUrl = (
     case 'INQUIRY':
       return `/inquiry/${metadata.inquiryId}`;
     case 'NOTICE':
+      return getShellNoticeTarget(category, metadata);
     case 'SYSTEM':
     default:
       return null;

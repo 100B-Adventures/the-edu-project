@@ -7,11 +7,15 @@ import { useParams, usePathname, useRouter } from 'next/navigation';
 import { StudyNoteTab } from '@/features/study-notes/components/study-note-tab';
 import { StudyNoteTabShell } from '@/features/study-notes/components/study-note-tab-shell';
 import { StudyNoteGroupContext } from '@/features/study-notes/contexts/study-note-group.context';
+import { OfficeFrame } from '@/features/study-rooms/components/office/office-frame';
 import { StudyroomSidebar } from '@/features/study-rooms/components/sidebar';
 import { ColumnLayout } from '@/layout/column-layout';
 import { useRole } from '@/shared/hooks/use-role';
-import { isMvpHSliceEnabled } from '@/shared/lib/mvp-h-slice';
 import { cn } from '@/shared/lib';
+import {
+  isMvpHShellEnabled,
+  isMvpHSliceEnabled,
+} from '@/shared/lib/mvp-h-slice';
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -57,17 +61,46 @@ const StudyNoteLayout = ({ children }: LayoutProps) => {
     return <>{children}</>;
   }
 
-  // homework routes are handled by /homework/layout.tsx
-  if (isHomeworkRoute) {
-    return <>{children}</>;
-  }
-
   if (isDetailPage) {
     return (
       <ColumnLayout className="desktop:p-6 items-start gap-6">
         {children}
       </ColumnLayout>
     );
+  }
+
+  // mvp-h shell: 켜면 교무실 틀(머리 카드·탭 넷·방 메뉴 서랍). 방 안 왼쪽 사이드바는 서랍으로 들어간다.
+  const isOfficeSegment =
+    segment === 'note' ||
+    segment === 'homework' ||
+    segment === 'lesson' ||
+    segment === 'qna' ||
+    segment === 'notice';
+  if (
+    isMvpHShellEnabled() &&
+    isOfficeSegment &&
+    (role === 'ROLE_TEACHER' || role === 'ROLE_STUDENT')
+  ) {
+    return (
+      <StudyNoteGroupContext.Provider
+        value={{ selectedGroupId, setSelectedGroupId }}
+      >
+        <OfficeFrame
+          studyRoomId={studyRoomId}
+          role={role === 'ROLE_TEACHER' ? 'teacher' : 'student'}
+          segment={segment!}
+          selectedGroupId={selectedGroupId}
+          onSelectGroup={setSelectedGroupId}
+        >
+          {children}
+        </OfficeFrame>
+      </StudyNoteGroupContext.Provider>
+    );
+  }
+
+  // 기존 homework 중첩 layout 은 유지하되, shell 이 꺼졌거나 상세 주소일 때만 바깥 틀을 우회한다.
+  if (isHomeworkRoute) {
+    return <>{children}</>;
   }
 
   return (
