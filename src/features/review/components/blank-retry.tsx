@@ -5,7 +5,10 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { handwritingRepository } from '@/entities/handwriting';
+import {
+  handwritingRepository,
+  settleDeferredStrokes,
+} from '@/entities/handwriting';
 import type { BlankRetryResult } from '@/entities/wrong-answer';
 import { useWrongAnswersQuery } from '@/features/dashboard/hooks/use-wrong-answer-query';
 import { useOpenChallengeDetailQuery } from '@/features/open-challenge/hooks/use-open-challenge';
@@ -37,10 +40,48 @@ const START_ERROR_TEXT: Record<string, string> = {
 
 const FINISH_ERROR_TEXT: Record<string, string> = {
   WRONG_ANSWER_ALREADY_REVIEWED_TODAY: '오늘은 이미 이 문제를 다시 풀었어요.',
-  BLANK_SESSION_CLOSED: '시작한 지 오래돼 닫혔어요. 다시 시작해 주세요.',
+  BLANK_SESSION_CLOSED: '이 풀이는 이미 끝났어요.',
   SELECTED_ANSWER_REQUIRED: '답을 먼저 골라 주세요.',
   SELF_JUDGEMENT_REQUIRED: '맞았는지 먼저 골라 주세요.',
 };
+
+/** 시간이 지나 세션이 닫혔을 때(BLANK_SESSION_EXPIRED). 쓴 필기는 지우지 않는다(교차 리뷰 P1-13). */
+const ExpiredSessionCard = ({
+  onRestart,
+  onViewNotes,
+  restarting,
+}: {
+  onRestart: () => void;
+  onViewNotes: () => void;
+  restarting: boolean;
+}) => (
+  <section
+    role="alert"
+    aria-label="세션 만료"
+    data-testid="blank-expired"
+    className="border-orange-9 bg-orange-1 rounded-card p-card-pad flex flex-col gap-3 border"
+  >
+    <p className="font-body1-heading text-text-main">
+      시간이 지나 이 풀이 세션이 닫혔어요. 쓴 필기는 그대로 남아 있어요.
+    </p>
+    <div className="flex gap-2">
+      <Button
+        variant="outlined"
+        onClick={onViewNotes}
+        data-testid="blank-expired-view"
+      >
+        필기 보기
+      </Button>
+      <Button
+        isLoading={restarting}
+        onClick={onRestart}
+        data-testid="blank-expired-restart"
+      >
+        새로 시작하기
+      </Button>
+    </div>
+  </section>
+);
 
 const rewardText = (result: BlankRetryResult) => {
   if (result.reward.granted) return `+${result.reward.exp ?? 0} EXP`;
@@ -94,6 +135,7 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
     'CORRECT' | 'WRONG' | null
   >(null);
   const [result, setResult] = useState<BlankRetryResult | null>(null);
+  const [expired, setExpired] = useState(false);
   const startedAtRef = useRef<number>(Date.now());
   const startedRef = useRef(false);
   // 손글씨 업로드가 끝나기 전에는 mutation 이 아직 pending 이 아니라서, 그 사이 두 번 눌리면 마무리가 두 번 나간다.
@@ -133,6 +175,18 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
     ? selectedAnswer.trim() === ''
     : selfJudgement === null;
 
+  const handleRestart = () => {
+    startMutation.mutate(wrongAnswerId, {
+      onSuccess: (session) => {
+        setSessionId(session.blankSessionId);
+        startedAtRef.current = Date.now();
+        setExpired(false);
+      },
+      onError: () =>
+        showBottomToast('새로 시작하지 못했어요. 다시 시도해 주세요.'),
+    });
+  };
+
   const handleSubmit = async () => {
     if (sessionId === null || answerMissing || submittingRef.current) return;
     submittingRef.current = true;
@@ -168,9 +222,16 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
         }
         saved = await finishMutation.mutateAsync(payload);
       }
+      // 획 업로드만 실패해 PNG 로 저장됐다면 보관함에 넣고 다시 붙인다(교차 리뷰 P1-9).
+      await settleDeferredStrokes(handwriting, saved.handwriting, strokes);
       setResult(saved);
     } catch (error) {
       const code = getApiError(error)?.code ?? '';
+      if (code === 'BLANK_SESSION_EXPIRED') {
+        // 필기는 그대로 두고 새 세션을 열 길을 보인다.
+        setExpired(true);
+        return;
+      }
       showBottomToast(
         FINISH_ERROR_TEXT[code] ?? '저장하지 못했어요. 다시 시도해 주세요.'
       );
@@ -242,6 +303,13 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
           </span>
         )}
       </section>
+      {expired && (
+        <ExpiredSessionCard
+          onRestart={handleRestart}
+          onViewNotes={() => setExpired(false)}
+          restarting={startMutation.isPending}
+        />
+      )}
       <SolutionDrawingPad
         onStrokesChange={setStrokes}
         persistKey={`mvph-blank:${wrongAnswerId}`}

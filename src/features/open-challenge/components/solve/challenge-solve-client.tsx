@@ -10,28 +10,11 @@ import {
   useClaimGuestSessionMutation,
   usePublicInvitePreviewQuery,
 } from '@/features/social/hooks';
-import {
-  ConsentDeclinedError,
-  submitSolutionNote,
-} from '@/features/solution-note/submit-solution-note';
-import { useHandwritingConsent } from '@/features/solution-note/use-handwriting-consent';
-import {
-  SolutionDrawingPad,
-  type Stroke,
-  exportStrokesToDataURL,
-  useDrawingUpload,
-} from '@/shared/components/drawing';
-import {
-  BackButton,
-  Button,
-  Dialog,
-  Prompt,
-  showBottomToast,
-} from '@/shared/components/ui';
-import { PRIVATE, PUBLIC } from '@/shared/constants';
+import { SolutionDrawingPad, type Stroke } from '@/shared/components/drawing';
+import { BackButton, Button, Dialog, Prompt } from '@/shared/components/ui';
+import { PUBLIC } from '@/shared/constants';
 import { cn } from '@/shared/lib';
 import { trackOcStart, trackOcSubmit } from '@/shared/lib/analytics';
-import { isMvpHSliceEnabled } from '@/shared/lib/mvp-h-slice';
 import {
   Bot,
   ChevronDown,
@@ -45,7 +28,6 @@ import {
 
 import {
   useCoachOpeningQuery,
-  useCreateChallengeReviewMutation,
   useFinishAiCoachingSessionMutation,
   useGuestGradeChallengeMutation,
   useMyOpenChallengeDetailQuery,
@@ -58,14 +40,15 @@ import { AiCoachPanel } from './ai-coach-panel';
 import { ChallengeHistoryDialog } from './challenge-history-dialog';
 import { ChallengeSolveSkeleton } from './challenge-solve-skeleton';
 import { ChoiceList } from './choice-list';
+import { persistSolveResult } from './persist-result';
 import { ShortAnswerInput } from './short-answer-input';
+import { useDrawingShare } from './use-drawing-share';
+import { useSolutionNoteHandoff } from './use-solution-note-handoff';
 
 type ChallengeSolveClientProps = {
   challengeId: string;
   isLoggedIn: boolean;
 };
-
-const RESULT_STORAGE_KEY_PREFIX = 'open-challenge-result';
 
 // FDD F-14: 도전장 링크당 한 문제를 가입 없이 풀 수 있다.
 const GUEST_FREE_LIMIT = 1;
@@ -129,7 +112,7 @@ export const ChallengeSolveClient = ({
   const [isQuestionOpen, setIsQuestionOpen] = useState(true);
   const [isInviteContextOpen, setIsInviteContextOpen] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const { ensureConsent, consentDialog } = useHandwritingConsent();
+  const { handoff, consentDialog } = useSolutionNoteHandoff();
   // 제출 전체(채점, 동의, 손필기 업로드, 풀이노트 생성)가 끝날 때까지 두 번째 제출을 막는다.
   const submittingRef = useRef(false);
   const [isNoteSubmitting, setIsNoteSubmitting] = useState(false);
@@ -182,12 +165,9 @@ export const ChallengeSolveClient = ({
   const startAttemptMutation = useStartChallengeAttemptMutation();
   const submitAnswerMutation = useSubmitChallengeAnswerMutation(challengeId);
   const guestGradeMutation = useGuestGradeChallengeMutation(challengeId);
-  const createReviewMutation = useCreateChallengeReviewMutation();
   const claimGuestSessionMutation = useClaimGuestSessionMutation();
   const finishAiCoachingSessionMutation = useFinishAiCoachingSessionMutation();
-  const { uploadDrawingAsync, isUploading } = useDrawingUpload(
-    'CHALLENGE_REVIEW_DRAWING'
-  );
+  const { shareDrawing, isUploading } = useDrawingShare();
   const isSubmitting =
     startAttemptMutation.isPending ||
     submitAnswerMutation.isPending ||
@@ -429,97 +409,29 @@ export const ChallengeSolveClient = ({
         elapsed: Math.round((Date.now() - mountTimeRef.current) / 1000),
       });
 
-      // MVP-H slice 1: 제출 뒤에는 풀이노트(내 풀이 | 해설 두 칸)로 간다.
-      // 실패하면 기존 결과 화면 흐름으로 이어 가 제출 자체는 막지 않는다.
-      let skipDrawingShare = false;
-      if (isMvpHSliceEnabled()) {
-        try {
-          const solutionNoteId = await submitSolutionNote(
-            {
-              attemptId: Number(attemptId),
-              strokes: drawingStrokes,
-              elapsedSeconds: Math.round(
-                (Date.now() - mountTimeRef.current) / 1000
-              ),
-              idempotencyKey: `sn-${challengeId}-${attemptId}`,
-            },
-            ensureConsent
-          );
-          router.push(PRIVATE.DASHBOARD.SOLUTION_NOTE(solutionNoteId));
-          return;
-        } catch (error) {
-          if (error instanceof ConsentDeclinedError) {
-            // 저장에 동의하지 않았으면 손글씨는 올리지도, 공유하지도 않는다.
-            skipDrawingShare = true;
-            showBottomToast(
-              '손글씨를 저장하지 않아 풀이노트는 만들지 않았어요. 결과 화면으로 이동해요.'
-            );
-          } else {
-            showBottomToast(
-              '풀이노트를 만들지 못했어요. 결과 화면으로 이동해요.'
-            );
-          }
-        }
-      }
+      // MVP-H 조각 1: 풀이노트가 만들어지면 공유까지 마치고 노트로 이동한다(use-solution-note-handoff).
+      const outcome = await handoff({
+        challengeId,
+        attemptId,
+        strokes: drawingStrokes,
+        elapsedSeconds: Math.round((Date.now() - mountTimeRef.current) / 1000),
+        shareDrawing,
+      });
+      if (outcome.kind === 'navigated') return;
 
       // D-14: 정오와 무관하게 손글씨가 있으면 문제를 푼 사람들에게 공유한다.
-      let drawingShareFailure:
-        | { strokes: Stroke[]; mediaAssetId?: number }
-        | undefined;
-      if (drawingStrokes.length > 0 && !skipDrawingShare) {
-        let mediaAssetId: number | undefined;
-        try {
-          ({ mediaAssetId } = await uploadDrawingAsync(drawingStrokes));
-          await createReviewMutation.mutateAsync({
-            challengeId,
-            attemptId,
-            solutionType: 'DRAWING',
-            content: '',
-            drawingImageMediaId: mediaAssetId,
-          });
-        } catch {
-          // 결과 화면 이동은 유지하되, 실패 사실과 재시도 정보를 결과에 넘긴다.
-          drawingShareFailure = {
-            strokes: drawingStrokes,
-            mediaAssetId,
-          };
-        }
-      }
+      // 실패해도 결과 화면 이동은 유지하되, 실패 사실과 재시도 정보를 결과에 넘긴다.
+      const drawingShareFailure =
+        drawingStrokes.length > 0
+          ? await shareDrawing(challengeId, attemptId, drawingStrokes)
+          : undefined;
 
-      // 정답·오답·공유 여부와 무관하게, 내가 쓴 손글씨 풀이를 결과 화면 상단에 보여준다.
-      let myDrawingDataUrl: string | undefined;
-      if (drawingStrokes.length > 0) {
-        try {
-          myDrawingDataUrl = exportStrokesToDataURL(drawingStrokes);
-        } catch {
-          // 렌더 실패가 결과 화면 이동을 막지 않도록 한다.
-        }
-      }
-
-      const storageKey = `${RESULT_STORAGE_KEY_PREFIX}:${challengeId}`;
-      try {
-        window.sessionStorage.setItem(
-          storageKey,
-          JSON.stringify({
-            ...result,
-            attemptId,
-            selectedAnswer,
-            myDrawingDataUrl,
-            drawingShareFailure,
-          })
-        );
-      } catch {
-        // 드로잉 dataURL 로 용량 초과 시, 드로잉 없이 결과만 저장한다.
-        window.sessionStorage.setItem(
-          storageKey,
-          JSON.stringify({
-            ...result,
-            attemptId,
-            selectedAnswer,
-            drawingShareFailure,
-          })
-        );
-      }
+      persistSolveResult(challengeId, drawingStrokes, {
+        ...result,
+        attemptId,
+        selectedAnswer,
+        drawingShareFailure,
+      });
       router.push(PUBLIC.OPEN_CHALLENGE.RESULT(challengeId));
     } catch {
       // mutation hook에서 공통 API 에러 처리를 수행한다.

@@ -22,6 +22,18 @@ export const useTeacherLessonInfoQuery = (studyRoomId: number) =>
     queryFn: () => teachingNoteRepository.getTeacherLessonInfo(studyRoomId),
   });
 
+/** 선생님이 그 방 학생 한 명의 메모(응답의 myMemo)까지 읽는다(D-129). 방 구성원이 아닌 학생 id 는 서버가 거절한다. */
+export const useTeacherStudentMemoQuery = (
+  studyRoomId: number,
+  studentId: number | undefined
+) =>
+  useQuery({
+    queryKey: teachingNoteKeys.teacherLessonInfo(studyRoomId, studentId),
+    queryFn: () =>
+      teachingNoteRepository.getTeacherLessonInfo(studyRoomId, studentId),
+    enabled: studentId !== undefined,
+  });
+
 /** 수업노트별 같이 푼 문제. 노트 id 마다 한 번씩 읽는다. */
 export const useNoteProblemsQueries = (
   role: 'student' | 'teacher',

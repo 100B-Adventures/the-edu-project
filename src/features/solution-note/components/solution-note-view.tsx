@@ -5,7 +5,11 @@ import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
-import { handwritingRepository } from '@/entities/handwriting';
+import {
+  flushStrokesOutbox,
+  handwritingRepository,
+  settleDeferredStrokes,
+} from '@/entities/handwriting';
 import {
   type SolutionNoteDetail,
   solutionNoteRepository,
@@ -242,6 +246,10 @@ const ExplanationPane = ({ solutionNoteId }: { solutionNoteId: number }) => {
 };
 
 export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
+  // 지난번에 획 업로드가 실패해 보관함에 남은 획이 있으면 이 화면을 열 때 다시 붙여 본다(교차 리뷰 P1-9).
+  useEffect(() => {
+    void flushStrokesOutbox();
+  }, []);
   const router = useRouter();
   const detailQuery = useSolutionNoteDetailQuery(solutionNoteId);
   const reviseMutation = useReviseSolutionNoteMutation(solutionNoteId);
@@ -330,6 +338,8 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
         }
         saved = await reviseMutation.mutateAsync(revisePayload);
       }
+      // 획 업로드만 실패해 PNG 로 저장됐다면 보관함에 넣고 다시 붙인다(교차 리뷰 P1-9).
+      await settleDeferredStrokes(handwriting, saved.handwriting, strokes);
       if (saved.reward.granted) {
         showBottomToast(`+${saved.reward.exp ?? 0} EXP`);
       } else {
@@ -364,10 +374,14 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
     try {
       const saved = await stuckMutation.mutateAsync(next);
       if (saved.suggestImport && detail.challengeAttemptId) {
-        await reviewRepository.importProblems({
-          channel: 'SOLVED_TODAY',
-          challengeAttemptIds: [detail.challengeAttemptId],
-        });
+        // 같은 시도를 두 번 넣어도 한 번만 반영되도록 시도 번호를 키로 쓴다(교차 리뷰 P1-6).
+        await reviewRepository.importProblems(
+          {
+            channel: 'SOLVED_TODAY',
+            challengeAttemptIds: [detail.challengeAttemptId],
+          },
+          `imp-solved-${detail.challengeAttemptId}`
+        );
         showBottomToast('N회독에 넣었어요.');
       }
     } catch (error) {

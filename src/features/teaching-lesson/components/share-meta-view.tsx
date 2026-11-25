@@ -1,6 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import {
   teachingNoteKeys,
@@ -8,7 +11,8 @@ import {
 } from '@/entities/teaching-note';
 import { Skeleton } from '@/shared/components/loading';
 import { Button, EmptyState } from '@/shared/components/ui';
-import { PUBLIC } from '@/shared/constants';
+import { PRIVATE, PUBLIC } from '@/shared/constants';
+import { useRole } from '@/shared/hooks/use-role';
 import { useQuery } from '@tanstack/react-query';
 
 type Props = { token: string };
@@ -36,7 +40,30 @@ export const ShareMetaView = ({ token }: Props) => {
     queryFn: () => teachingNoteRepository.getShareMeta(token),
     retry: false,
   });
-  if (query.isPending) return <Skeleton.Block className="h-40 w-full" />;
+  const router = useRouter();
+  // 로그인한 사람이면 같은 링크를 해석해 그 방 구성원이면 전체 수업노트로 보낸다(교차 리뷰 P1-10).
+  const { role, isLoading: isRoleLoading } = useRole();
+  const isLoggedIn = !!role;
+  const resolve = useQuery({
+    queryKey: teachingNoteKeys.shareResolve(token),
+    queryFn: () => teachingNoteRepository.resolveShare(token),
+    enabled: isLoggedIn,
+    retry: false,
+  });
+  useEffect(() => {
+    if (resolve.data) {
+      router.replace(
+        PRIVATE.NOTE.DETAIL(
+          resolve.data.studyRoomId,
+          resolve.data.teachingNoteId
+        )
+      );
+    }
+  }, [resolve.data, router]);
+
+  if (query.isPending || isRoleLoading || (isLoggedIn && resolve.isPending)) {
+    return <Skeleton.Block className="h-40 w-full" />;
+  }
   if (query.isError || !query.data) {
     return <EmptyState title="열 수 없는 링크예요" />;
   }
@@ -56,27 +83,36 @@ export const ShareMetaView = ({ token }: Props) => {
       <h1 className="font-headline1-heading text-text-main">
         {meta.title ?? '수업노트'}
       </h1>
-      <p className="font-body2-normal text-text-sub1">
-        {[meta.studyRoomName, meta.teacherName].filter(Boolean).join(' · ')}
-      </p>
+      <p className="font-body2-normal text-text-sub1">{meta.teacherName}</p>
       <p className="font-body1-normal text-text-main">
         같이 푼 문제 {meta.problemCount} · 판서 사진 {meta.boardPhotoCount} ·
         과제 {meta.homeworkCount}
       </p>
-      <div
-        className="border-line-line2 rounded-card flex flex-col gap-2 border p-4"
-        data-testid="share-login-prompt"
-      >
-        <p className="font-body1-normal text-text-main">
-          로그인하면 수업노트 전체를 볼 수 있어요
-        </p>
-        <Button
-          asChild
-          size="large"
+      {isLoggedIn ? (
+        <div
+          className="border-line-line2 rounded-card flex flex-col gap-2 border p-4"
+          data-testid="share-not-member"
         >
-          <Link href={loginHref}>로그인</Link>
-        </Button>
-      </div>
+          <p className="font-body1-normal text-text-main">
+            이 수업노트의 스터디룸 구성원이 아니라서 전체를 볼 수 없어요
+          </p>
+        </div>
+      ) : (
+        <div
+          className="border-line-line2 rounded-card flex flex-col gap-2 border p-4"
+          data-testid="share-login-prompt"
+        >
+          <p className="font-body1-normal text-text-main">
+            로그인하면 수업노트 전체를 볼 수 있어요
+          </p>
+          <Button
+            asChild
+            size="large"
+          >
+            <Link href={loginHref}>로그인</Link>
+          </Button>
+        </div>
+      )}
     </main>
   );
 };

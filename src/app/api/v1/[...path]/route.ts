@@ -8,6 +8,10 @@ import {
   extractErrorMessage,
   safeJson,
 } from '@/shared/lib';
+import {
+  isChargingRequest,
+  isForeignOrigin,
+} from '@/shared/lib/bff/origin-guard';
 import { applyAdminReturnCookieForBff } from '@/shared/lib/bff/utils.admin-cookies';
 
 if (!serverEnv.backendApiUrl) throw new Error('BASE_URL is not defined');
@@ -42,6 +46,16 @@ async function handleRequest(
   const { searchParams } = request.nextUrl;
   const params = await context.params;
   const pathSegments = params.path;
+  // 포인트가 나가는 요청은 다른 사이트에서 온 것이면 백엔드에 닿기 전에 막는다(교차 리뷰 P1-2).
+  if (
+    isChargingRequest(method, pathSegments) &&
+    isForeignOrigin(headers, request.nextUrl.host)
+  ) {
+    return NextResponse.json(
+      { code: 'FORBIDDEN_ORIGIN', message: '허용되지 않은 출처의 요청입니다.' },
+      { status: 403 }
+    );
+  }
   // ROLE_* 값을 API 경로 prefix로 변환
   const normalizedSegments = normalizeRoleInPath(pathSegments);
   const backendPath = `/${normalizedSegments.join('/')}`;

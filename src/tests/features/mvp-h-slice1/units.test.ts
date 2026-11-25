@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/entities/handwriting', () => ({
   handwritingRepository: { uploadHandwriting: mocks.upload },
+  settleDeferredStrokes: vi.fn(),
 }));
 vi.mock('@/entities/solution-note', () => ({
   solutionNoteRepository: { create: mocks.create },
@@ -76,7 +77,7 @@ describe('시험 항목 S20 제출 뒤 풀이노트 만들기', () => {
       },
       ensureOk
     );
-    expect(id).toBe(9);
+    expect(id).toEqual({ solutionNoteId: 9, strokesSaved: true });
     expect(mocks.create).toHaveBeenCalledWith(
       expect.objectContaining({ challengeAttemptId: 21, confirmEmpty: false }),
       'k1'
@@ -139,7 +140,7 @@ describe('시험 항목 S20 제출 뒤 풀이노트 만들기', () => {
         },
         ensureOk
       )
-    ).resolves.toBe(5);
+    ).resolves.toEqual({ solutionNoteId: 5, strokesSaved: true });
     vi.unstubAllGlobals();
   });
 

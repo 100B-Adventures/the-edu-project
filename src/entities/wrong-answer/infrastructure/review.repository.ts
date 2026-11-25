@@ -27,12 +27,20 @@ const getCards = async (query: ReviewCardsQuery, page = 0, size = 20) => {
   return unwrapEnvelope(response, reviewDto.cards);
 };
 
+/** 키가 있으면 Idempotency-Key 헤더로 보낸다. 같은 키의 재요청은 서버가 첫 응답을 돌려준다(교차 리뷰 P1-6). */
+const idempotencyHeaders = (key?: string) =>
+  key ? { headers: { 'Idempotency-Key': key } } : undefined;
+
 /** POST /api/student/wrong-answers/imports (§1.12) */
-const importProblems = async (input: ReviewImportPayload) => {
+const importProblems = async (
+  input: ReviewImportPayload,
+  idempotencyKey?: string
+) => {
   const body = reviewPayload.importRequest.parse(input);
   const response = await api.private.post(
     `${STUDENT}/wrong-answers/imports`,
-    body
+    body,
+    idempotencyHeaders(idempotencyKey)
   );
   return unwrapEnvelope(response, reviewDto.importResponse);
 };
@@ -54,12 +62,14 @@ const startBlankSession = async (wrongAnswerId: number) => {
 /** POST /api/student/wrong-answers/{id}/blank-retries (§1.9) */
 const finishBlankRetry = async (
   wrongAnswerId: number,
-  input: BlankRetryPayload
+  input: BlankRetryPayload,
+  idempotencyKey?: string
 ) => {
   const body = reviewPayload.blankRetryRequest.parse(input);
   const response = await api.private.post(
     `${STUDENT}/wrong-answers/${wrongAnswerId}/blank-retries`,
-    body
+    body,
+    idempotencyHeaders(idempotencyKey)
   );
   return unwrapEnvelope(response, reviewDto.blankRetryResponse);
 };

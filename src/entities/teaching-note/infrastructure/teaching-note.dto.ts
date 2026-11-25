@@ -54,6 +54,12 @@ const shareMeta = z.object({
   homeworkCount: z.number(),
 });
 
+/** GET /api/common/teaching-note-shares/{token}: 로그인한 구성원이 공유 링크로 들어왔을 때(교차 리뷰 P1-10) */
+const shareResolve = z.object({
+  studyRoomId: z.number(),
+  teachingNoteId: z.number(),
+});
+
 const studentReviewSummary = z.object({
   studentId: z.number(),
   activeCount: z.number(),
@@ -89,6 +95,7 @@ export const dto = {
   attachProblem,
   shareLink,
   shareMeta,
+  shareResolve,
   studentReviewSummary,
   memoSaved,
   weeklyQuestion,

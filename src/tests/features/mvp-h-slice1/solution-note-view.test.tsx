@@ -25,6 +25,8 @@ vi.mock('@/entities/handwriting', () => ({
     uploadHandwriting: mocks.upload,
     fetchStrokes: vi.fn(),
   },
+  settleDeferredStrokes: vi.fn(),
+  flushStrokesOutbox: vi.fn(),
 }));
 
 vi.mock('@/shared/api', () => ({
@@ -81,6 +83,12 @@ describe('시험 항목 S21 제출 뒤 두 칸 풀이노트', () => {
     vi.clearAllMocks();
     mocks.getConsent.mockResolvedValue({ granted: true });
     mocks.grant.mockResolvedValue(undefined);
+    // 해설 열람은 포인트가 나가는 POST 다(교차 리뷰 P1-2). GET 으로는 부르지 않는다.
+    mocks.post.mockImplementation((url: string) =>
+      url.endsWith('/explanation')
+        ? Promise.resolve(EXPLANATION)
+        : Promise.reject(new Error(`unmocked post ${url}`))
+    );
     mocks.get.mockImplementation((url: string) => {
       if (url === '/student/solution-notes/3') return Promise.resolve(DETAIL);
       if (url === '/student/solution-notes/3/explanation')
@@ -115,6 +123,17 @@ describe('시험 항목 S21 제출 뒤 두 칸 풀이노트', () => {
       '/student/solution-notes/3/stuck-reasons'
     );
     expect(mocks.put.mock.calls[0]![1]).toEqual({ reasons: ['TOOK_LONG'] });
+  });
+
+  it('S21-9 해설은 POST 로 열람하고 GET 으로는 부르지 않는다 (교차 리뷰 P1-2)', async () => {
+    renderWithQuery(<SolutionNoteView solutionNoteId={3} />);
+    expect(await screen.findByText(/공차를 구한다/)).toBeInTheDocument();
+    expect(mocks.post).toHaveBeenCalledWith(
+      '/student/solution-notes/3/explanation'
+    );
+    expect(
+      mocks.get.mock.calls.some((c) => String(c[0]).endsWith('/explanation'))
+    ).toBe(false);
   });
 
   it('S21-6 제출 답 칩과 두 버튼의 예고 EXP 를 서버 값으로 보인다', async () => {
@@ -214,10 +233,14 @@ describe('시험 항목 S21 제출 뒤 두 칸 풀이노트', () => {
     mocks.upload.mockImplementation(
       () => new Promise((resolve) => (release = resolve))
     );
-    mocks.post.mockResolvedValue({
-      versionNo: 2,
-      reward: { granted: false, reason: 'ALREADY_REWARDED_TODAY' },
-    });
+    mocks.post.mockImplementation((url: string) =>
+      url.endsWith('/explanation')
+        ? Promise.resolve(EXPLANATION)
+        : Promise.resolve({
+            versionNo: 2,
+            reward: { granted: false, reason: 'ALREADY_REWARDED_TODAY' },
+          })
+    );
     const user = await openFixing();
     await user.dblClick(screen.getByTestId('note-save-fix'));
     await waitFor(() => expect(mocks.upload).toHaveBeenCalledTimes(1));

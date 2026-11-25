@@ -11,7 +11,7 @@ export const fetchShareMetaOnServer = async (token: string) => {
   try {
     const response = await fetch(
       `${serverEnv.backendApiUrl}/public/teaching-note-shares/${encodeURIComponent(token)}`,
-      { headers: { Accept: 'application/json' }, next: { revalidate: 60 } }
+      { headers: { Accept: 'application/json' }, cache: 'no-store' }
     );
     if (!response.ok) return null;
     return unwrapEnvelope(await response.json(), dto.shareMeta);

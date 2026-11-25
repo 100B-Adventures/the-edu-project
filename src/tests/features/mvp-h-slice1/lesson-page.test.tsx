@@ -209,4 +209,16 @@ describe('시험 항목 S22 1:1 수업 화면', () => {
       '/study-rooms/4/note/new'
     );
   });
+
+  it.each([['ROLE_PARENT'], ['ROLE_ADMIN'], [undefined as unknown as string]])(
+    'S22-9 거절: 역할이 %s 이면 학생 화면으로 넘기지 않고 안내만 보이며 학생 API 를 부르지 않는다 (교차 리뷰 P2-3)',
+    async (role) => {
+      mocks.role.role = role;
+      renderWithQuery(<LessonPage studyRoomId={4} />);
+      expect(
+        await screen.findByText('이 화면은 선생님과 학생만 볼 수 있어요')
+      ).toBeInTheDocument();
+      expect(mocks.get).not.toHaveBeenCalled();
+    }
+  );
 });

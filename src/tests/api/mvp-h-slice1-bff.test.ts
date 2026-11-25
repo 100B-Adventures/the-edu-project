@@ -121,5 +121,34 @@ describe(
         message: '인증 필요',
       });
     });
+
+    test('S20-9 다른 사이트 Origin 으로 온 해설 열람(POST)은 백엔드에 닿기 전에 403 이다 (교차 리뷰 P1-2)', async () => {
+      const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }));
+      vi.stubGlobal('fetch', fetchMock);
+      const response = await call(
+        'POST',
+        ['student', 'solution-notes', '3', 'explanation'],
+        { headers: { Origin: 'https://evil.example' } }
+      );
+      expect(response.status).toBe(403);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    test('S20-10 같은 사이트 Origin 이거나 Origin 이 없는 해설 열람은 그대로 전달한다', async () => {
+      const fetchMock = vi.fn(
+        async () =>
+          new Response(JSON.stringify({ status: 200, data: {} }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+      );
+      vi.stubGlobal('fetch', fetchMock);
+      const path = ['student', 'solution-notes', '3', 'explanation'];
+      await call('POST', path, {
+        headers: { Origin: 'https://dev.d-edu.site' },
+      });
+      await call('POST', path);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
   }
 );

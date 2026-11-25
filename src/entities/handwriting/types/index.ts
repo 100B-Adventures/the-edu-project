@@ -21,6 +21,11 @@ export type HandwritingResult = {
 
 export type UploadHandwritingInput = {
   strokes: Stroke[];
+  /**
+   * 동의가 없어 획 좌표는 올리지 않는다(PNG 만 저장, FDD §5.1). 획 객체를 만들지도 올리지도 않고
+   * strokesDeferred 도 false 다. 나중에 다시 붙일 대상이 아니기 때문이다.
+   */
+  pngOnly?: boolean;
 };
 
 export type StrokesPayload = {

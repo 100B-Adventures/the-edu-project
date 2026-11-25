@@ -8,7 +8,12 @@ import { useRouter } from 'next/navigation';
 import type { NoteProblems } from '@/entities/teaching-note';
 import { useGetStudentNotesList } from '@/features/study-notes/hooks';
 import { Skeleton } from '@/shared/components/loading';
-import { Button, Input, showBottomToast } from '@/shared/components/ui';
+import {
+  Button,
+  EmptyState,
+  Input,
+  showBottomToast,
+} from '@/shared/components/ui';
 import { PRIVATE, PUBLIC } from '@/shared/constants';
 import { useRole } from '@/shared/hooks/use-role';
 import { getApiError } from '@/shared/lib';
@@ -283,6 +288,16 @@ export const LessonPage = ({ studyRoomId }: LessonPageProps) => {
   }, []);
   if (!mounted || isLoading) {
     return <Skeleton.Block className="h-60 w-full" />;
+  }
+  // 선생님과 학생만 이 화면을 쓴다. 학부모·관리자·역할을 못 읽은 경우를 학생 화면으로 보내면
+  // 학생 전용 API 가 403 으로 떨어지는 빈 화면이 되므로, 처음부터 막고 이유를 말한다(교차 리뷰 P2-3).
+  if (role !== 'ROLE_TEACHER' && role !== 'ROLE_STUDENT') {
+    return (
+      <EmptyState
+        title="이 화면은 선생님과 학생만 볼 수 있어요"
+        description="계정 역할을 확인하지 못했거나 권한이 없어요."
+      />
+    );
   }
   return (
     <div className="gap-section-gap flex flex-col">

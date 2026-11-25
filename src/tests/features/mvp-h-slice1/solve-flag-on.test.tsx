@@ -1,6 +1,5 @@
 import { ChallengeSolveClient } from '@/features/open-challenge/components/solve/challenge-solve-client';
 import { useOpenChallengeDetailQuery } from '@/features/open-challenge/hooks/use-open-challenge';
-import { ConsentDeclinedError } from '@/features/solution-note/submit-solution-note';
 import { renderWithProviders } from '@/tests/utils';
 import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -155,16 +154,24 @@ describe('시험 항목 S25 플래그 켜짐 제출 흐름(풀이노트)', () =>
   });
 
   test('S25-1 풀이노트 생성이 도는 동안 제출을 연달아 눌러도 채점·생성은 한 번만 보낸다', async () => {
-    let finish: (id: number) => void = () => {};
+    let finish: (result: {
+      solutionNoteId: number;
+      strokesSaved: boolean;
+    }) => void = () => {};
     m.submitNote.mockImplementation(
-      () => new Promise<number>((resolve) => (finish = resolve))
+      () =>
+        new Promise<{ solutionNoteId: number; strokesSaved: boolean }>(
+          (resolve) => (finish = resolve)
+        )
     );
     const user = await submit();
     const button = screen.getByTestId('challenge-submit-button');
     await user.dblClick(button);
     await waitFor(() => expect(m.submitNote).toHaveBeenCalledTimes(1));
     await user.click(button);
-    finish(77);
+    m.uploadDrawingAsync.mockResolvedValue({ mediaAssetId: 3 });
+    m.createReviewAsync.mockResolvedValue({});
+    finish({ solutionNoteId: 77, strokesSaved: true });
     await waitFor(() =>
       expect(m.push).toHaveBeenCalledWith(
         '/dashboard/student/solution-notes/77'
@@ -174,22 +181,65 @@ describe('시험 항목 S25 플래그 켜짐 제출 흐름(풀이노트)', () =>
     expect(m.submitNote).toHaveBeenCalledTimes(1);
   });
 
-  test('S25-2 거절: 동의를 안 하면 안내를 띄우고 손글씨를 공유로 올리지 않는다', async () => {
-    m.submitNote.mockRejectedValue(new ConsentDeclinedError());
+  test('S25-2 동의를 안 해 PNG 만 저장했어도 풀이노트로 가고, 손글씨는 공유로 올리지 않는다 (교차 리뷰 P1-8)', async () => {
+    m.submitNote.mockResolvedValue({ solutionNoteId: 78, strokesSaved: false });
     await submit();
     await userEvent
       .setup()
       .click(screen.getByTestId('challenge-submit-button'));
     await waitFor(() =>
-      expect(m.toast).toHaveBeenCalledWith(
-        '손글씨를 저장하지 않아 풀이노트는 만들지 않았어요. 결과 화면으로 이동해요.'
+      expect(m.push).toHaveBeenCalledWith(
+        '/dashboard/student/solution-notes/78'
       )
     );
     expect(m.uploadDrawingAsync).not.toHaveBeenCalled();
     expect(m.createReviewAsync).not.toHaveBeenCalled();
   });
 
-  test('S25-3 풀이노트 생성이 다른 이유로 실패하면 알리고 기존 결과 화면 흐름으로 이어 간다', async () => {
+  test('S25-4 풀이노트가 만들어지면 D-14 손글씨 공유를 먼저 하고 그 뒤에 이동한다 (교차 리뷰 P1-12, 성공 경로)', async () => {
+    const order: string[] = [];
+    m.submitNote.mockResolvedValue({ solutionNoteId: 79, strokesSaved: true });
+    m.uploadDrawingAsync.mockImplementation(async () => {
+      order.push('upload');
+      return { mediaAssetId: 3 };
+    });
+    m.createReviewAsync.mockImplementation(async () => {
+      order.push('review');
+      return {};
+    });
+    m.push.mockImplementation(() => order.push('push'));
+    await submit();
+    await userEvent
+      .setup()
+      .click(screen.getByTestId('challenge-submit-button'));
+    await waitFor(() => expect(order).toEqual(['upload', 'review', 'push']));
+    expect(m.createReviewAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        solutionType: 'DRAWING',
+        drawingImageMediaId: 3,
+      })
+    );
+  });
+
+  test('S25-5 공유가 실패해도 풀이노트로 이동하고 실패를 알린다 (교차 리뷰 P1-12, 실패 경로)', async () => {
+    m.submitNote.mockResolvedValue({ solutionNoteId: 80, strokesSaved: true });
+    m.uploadDrawingAsync.mockRejectedValue(new Error('net'));
+    await submit();
+    await userEvent
+      .setup()
+      .click(screen.getByTestId('challenge-submit-button'));
+    await waitFor(() =>
+      expect(m.push).toHaveBeenCalledWith(
+        '/dashboard/student/solution-notes/80'
+      )
+    );
+    expect(m.toast).toHaveBeenCalledWith(
+      '풀이노트는 만들었지만 손글씨 공유는 올리지 못했어요.'
+    );
+    expect(m.createReviewAsync).not.toHaveBeenCalled();
+  });
+
+  test('S25-3 풀이노트 생성이 실패하면 알리고 기존 결과 화면 흐름(공유 포함)으로 이어 간다', async () => {
     m.submitNote.mockRejectedValue(new Error('500'));
     m.uploadDrawingAsync.mockResolvedValue({ mediaAssetId: 3 });
     m.createReviewAsync.mockResolvedValue({});

@@ -27,9 +27,12 @@ const getDetail = async (id: number) => {
   return unwrapEnvelope(response, dto.detail);
 };
 
-/** GET /api/student/solution-notes/{id}/explanation (§1.2). 제출 뒤 무료. */
+/**
+ * POST /api/student/solution-notes/{id}/explanation (§1.2). 제출 뒤 무료, 백지 세션 중 재열람은 30P.
+ * 포인트 차감과 열람 상태 변경이 있어 GET 이 아니라 POST 다(교차 리뷰 P1-2). 같은 열람을 다시 보내도 두 번 차감되지 않는다.
+ */
 const getExplanation = async (id: number) => {
-  const response = await api.private.get(`${BASE}/${id}/explanation`);
+  const response = await api.private.post(`${BASE}/${id}/explanation`);
   return unwrapEnvelope(response, dto.explanation);
 };
 

@@ -11,7 +11,7 @@ const body = {
     title: '미분 수업',
     taughtAt: '2026-11-24T19:00:00',
     teacherName: '선생님',
-    studyRoomName: '1:1',
+    studyRoomName: null,
     ogImageUrl: null,
     problemCount: 3,
     boardPhotoCount: 2,
@@ -32,6 +32,20 @@ describe('시험 항목 S29 공유 링크 서버 메타(M-8)', () => {
     expect(buildShareDescription(meta!)).toBe(
       '2026.11.24 · 판서 2장 · 문제 3개 · 과제 1개'
     );
+  });
+
+  it('S29-3 링크를 회수한 뒤에도 남지 않도록 캐시 없이(no-store) 조회한다 (교차 리뷰 P2-1)', async () => {
+    const fetchMock = vi.fn(
+      async (..._args: unknown[]) =>
+        new Response(JSON.stringify(body), { status: 200 })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    await fetchShareMetaOnServer('abc');
+    const init = fetchMock.mock.calls[0]![1] as RequestInit & {
+      next?: unknown;
+    };
+    expect(init.cache).toBe('no-store');
+    expect(init.next).toBeUndefined();
   });
 
   it('S29-2 거절: 만료·없는 링크(404)와 네트워크 실패는 null 이다', async () => {

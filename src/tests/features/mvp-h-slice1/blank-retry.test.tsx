@@ -1,6 +1,7 @@
 import { BlankRetry } from '@/features/review/components/blank-retry';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { AxiosError } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithQuery } from './helpers';
@@ -26,6 +27,8 @@ vi.mock('@/entities/handwriting', () => ({
     getConsent: mocks.getConsent,
     grantConsent: mocks.grant,
   },
+  settleDeferredStrokes: vi.fn(),
+  flushStrokesOutbox: vi.fn(),
 }));
 vi.mock('@/shared/components/drawing', () => ({
   SolutionDrawingPad: () => <div data-testid="pad" />,
@@ -193,5 +196,61 @@ describe('시험 항목 S23 백지에 다시 풀기', () => {
       selfJudgement: 'CORRECT',
       selectedAnswer: null,
     });
+  });
+
+  it('S23-10 마무리가 BLANK_SESSION_EXPIRED 로 거절돼도 필기는 그대로 두고 새로 시작할 수 있다 (교차 리뷰 P1-13)', async () => {
+    const user = userEvent.setup();
+    let sessions = 0;
+    mocks.post.mockImplementation((url: string) => {
+      if (url.endsWith('/blank-sessions')) {
+        sessions += 1;
+        return Promise.resolve({ blankSessionId: 87 + sessions, dueNow: true });
+      }
+      return Promise.reject(
+        new AxiosError('x', '409', undefined, undefined, {
+          status: 409,
+          data: { code: 'BLANK_SESSION_EXPIRED', message: '만료' },
+          statusText: '',
+          headers: {},
+          config: {} as never,
+        })
+      );
+    });
+    renderWithQuery(<BlankRetry wrongAnswerId={501} />);
+    await user.click((await screen.findAllByTestId('blank-choice'))[1]!);
+    await user.click(screen.getByTestId('blank-submit'));
+    expect(await screen.findByTestId('blank-expired')).toHaveTextContent(
+      '쓴 필기는 그대로 남아 있어요'
+    );
+    // 필기 보기: 안내만 접히고 화면(필기 칸·답)은 그대로다.
+    await user.click(screen.getByTestId('blank-expired-view'));
+    expect(screen.queryByTestId('blank-expired')).toBeNull();
+    expect(screen.getByTestId('blank-submit')).toBeInTheDocument();
+    await user.click(screen.getByTestId('blank-submit'));
+    await user.click(await screen.findByTestId('blank-expired-restart'));
+    await waitFor(() => expect(sessions).toBe(2));
+    await waitFor(() =>
+      expect(screen.queryByTestId('blank-expired')).toBeNull()
+    );
+    // 새 세션 번호(89 가 아닌 88)로 다시 보낸다.
+    await user.click(screen.getByTestId('blank-submit'));
+    const finishes = mocks.post.mock.calls.filter((c) =>
+      String(c[0]).endsWith('/blank-retries')
+    );
+    expect(finishes.at(-1)![1]).toMatchObject({ blankSessionId: 89 });
+  });
+
+  it('S23-11 마무리 요청은 세션 번호를 키로 한 Idempotency-Key 를 보낸다 (교차 리뷰 P1-6)', async () => {
+    const user = userEvent.setup();
+    renderWithQuery(<BlankRetry wrongAnswerId={501} />);
+    await user.click((await screen.findAllByTestId('blank-choice'))[1]!);
+    await user.click(screen.getByTestId('blank-submit'));
+    await waitFor(() =>
+      expect(screen.getByTestId('blank-reward')).toBeInTheDocument()
+    );
+    const call = mocks.post.mock.calls.find((c) =>
+      String(c[0]).endsWith('/blank-retries')
+    );
+    expect(call?.[2]).toEqual({ headers: { 'Idempotency-Key': 'blank-88' } });
   });
 });

@@ -628,7 +628,6 @@ body {
   --shadow-popover: 0 6px 18px rgb(26 26 26 / 0.13); /* 팝오버 */
 
   /* 브레이크포인트 */
-  --breakpoint-wide-phone: 600px;
   --breakpoint-tablet: 768px;
   --breakpoint-shell: 1024px;
   --breakpoint-desktop: 1200px;

@@ -17,6 +17,10 @@ export const useSolutionExplanationQuery = (id: number) =>
     queryKey: solutionNoteKeys.explanation(id),
     queryFn: () => solutionNoteRepository.getExplanation(id),
     retry: false,
+    // 열람은 서버에 기록이 남는 POST 라 창 포커스·재마운트마다 다시 부르지 않는다.
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
 export const useReviseSolutionNoteMutation = (id: number) => {

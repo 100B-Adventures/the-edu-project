@@ -27,14 +27,17 @@ const toHex = (buffer: ArrayBuffer) =>
     .join('');
 
 export const sha256Hex = async (data: Blob): Promise<string> => {
-  const digest = await crypto.subtle.digest('SHA-256', await data.arrayBuffer());
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    await data.arrayBuffer()
+  );
   return toHex(digest);
 };
 
 const gzipText = async (text: string): Promise<Blob> => {
-  const stream = new Blob([text]).stream().pipeThrough(
-    new CompressionStream('gzip')
-  );
+  const stream = new Blob([text])
+    .stream()
+    .pipeThrough(new CompressionStream('gzip'));
   return new Response(stream).blob();
 };
 
@@ -70,6 +73,39 @@ const putObject = async (item: PresignItem, body: Blob) => {
   }
 };
 
+/** 동의 없이 PNG 한 장만 올린다. 획 좌표는 만들지도 올리지도 않는다. */
+const uploadPngOnly = async (strokes: Stroke[]): Promise<HandwritingRef> => {
+  const png = await exportStrokesToBlob(strokes);
+  const pngSha256 = await sha256Hex(png);
+  const presign = await api.private.post<PresignResponse>(
+    '/common/media/presign-batch',
+    {
+      mediaAssetList: [
+        {
+          fileName: 'handwriting.png',
+          contentType: 'image/png',
+          sizeBytes: png.size,
+          targetType: 'HANDWRITING_PNG',
+        },
+      ],
+    }
+  );
+  const pngItem = presign.data.mediaAssetList[0];
+  if (!pngItem) throw new Error('손필기 업로드 주소를 받지 못했어요.');
+  await putObject(pngItem, png);
+  return {
+    pngMediaId: pngItem.id,
+    strokesMediaId: null,
+    strokesDeferred: false,
+    strokeCount: 0,
+    strokeBytes: 0,
+    strokesSha256: null,
+    pngSha256,
+    schemaVersion: STROKES_SCHEMA_VERSION,
+    ...resolveLayout(strokes),
+  };
+};
+
 /**
  * 획 -> PNG + 획 JSON(gz) 두 객체를 올리고 서버가 요구하는 HandwritingRef 를 만든다.
  * 획 객체만 실패하면 PNG 만 올리고 strokesDeferred 로 표시한다(계약 §0.4).
@@ -77,7 +113,9 @@ const putObject = async (item: PresignItem, body: Blob) => {
  */
 const uploadHandwriting = async ({
   strokes,
+  pngOnly = false,
 }: UploadHandwritingInput): Promise<HandwritingRef> => {
+  if (pngOnly) return uploadPngOnly(strokes);
   const png = await exportStrokesToBlob(strokes);
   const payload = buildStrokesPayload(strokes);
   const strokesBlob = await gzipText(JSON.stringify(payload));
@@ -133,6 +171,54 @@ const uploadHandwriting = async ({
   };
 };
 
+export type AttachedStrokes = {
+  strokesMediaId: number;
+  strokeCount: number;
+  strokeBytes: number;
+  strokesSha256: string;
+};
+
+/** 획 객체(gz) 하나만 올린다. 먼저 실패한 업로드를 다시 시도할 때 쓴다. */
+const uploadStrokesObject = async (
+  strokes: Stroke[]
+): Promise<AttachedStrokes> => {
+  const strokesBlob = await gzipText(
+    JSON.stringify(buildStrokesPayload(strokes))
+  );
+  const strokesSha256 = await sha256Hex(strokesBlob);
+  const presign = await api.private.post<PresignResponse>(
+    '/common/media/presign-batch',
+    {
+      mediaAssetList: [
+        {
+          fileName: 'handwriting-strokes.json.gz',
+          contentType: 'application/gzip',
+          sizeBytes: strokesBlob.size,
+          targetType: 'HANDWRITING_STROKES',
+        },
+      ],
+    }
+  );
+  const item = presign.data.mediaAssetList[0];
+  if (!item) throw new Error('손필기 업로드 주소를 받지 못했어요.');
+  await putObject(item, strokesBlob);
+  return {
+    strokesMediaId: item.id,
+    strokeCount: strokes.length,
+    strokeBytes: strokesBlob.size,
+    strokesSha256,
+  };
+};
+
+/** POST /api/student/handwriting/{assetId}/strokes. PNG 만 저장된 쪽에 획을 붙인다. */
+const attachStrokes = async (assetId: number, attached: AttachedStrokes) => {
+  const response = (await api.private.post(
+    `/student/handwriting/${assetId}/strokes`,
+    attached
+  )) as { data?: { strokesPending?: boolean } };
+  return { strokesPending: response?.data?.strokesPending === true };
+};
+
 /** 받아 온 획 객체(gz)를 풀어 Stroke[] 로. 판 이어 쓰기에 쓴다. */
 const fetchStrokes = async (strokesUrl: string): Promise<Stroke[]> => {
   const response = await fetch(strokesUrl);
@@ -180,17 +266,28 @@ const grantConsent = async (consentType: string) => {
 };
 
 /** GET /api/student/consents/{type}. 동의한 적이 없으면 granted=false. */
-const getConsent = async (consentType: string): Promise<{ granted: boolean }> => {
+const getConsent = async (
+  consentType: string
+): Promise<{ granted: boolean }> => {
   const response = (await api.private.get(
     `/student/consents/${consentType}`
-  )) as { data?: { granted?: boolean } };
-  return { granted: response?.data?.granted === true };
+  )) as {
+    data?: { granted?: boolean; version?: string; currentVersion?: string };
+  };
+  const data = response?.data;
+  // 동의한 문구 버전이 지금 받는 버전과 다르면 동의하지 않은 것으로 본다(교차 리뷰 P1-3).
+  // 서버가 버전을 안 주는 옛 응답이면 granted 만 본다.
+  const versionMatches =
+    !data?.currentVersion || data.version === data.currentVersion;
+  return { granted: data?.granted === true && versionMatches };
 };
 
 export const handwritingRepository = {
   getConsent,
   grantConsent,
   uploadHandwriting,
+  uploadStrokesObject,
+  attachStrokes,
   fetchStrokes,
   uploadImportPhoto,
 };
