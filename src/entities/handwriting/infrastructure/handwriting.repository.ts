@@ -27,9 +27,11 @@ const toHex = (buffer: ArrayBuffer) =>
     .join('');
 
 export const sha256Hex = async (data: Blob): Promise<string> => {
+  // Uint8Array 로 감싸 넘긴다. 브라우저에서는 같은 결과지만, Blob 이 다른 실행 환경(jsdom 등)의
+  // ArrayBuffer 를 돌려줘도 digest 가 받는다.
   const digest = await crypto.subtle.digest(
     'SHA-256',
-    await data.arrayBuffer()
+    new Uint8Array(await data.arrayBuffer())
   );
   return toHex(digest);
 };
