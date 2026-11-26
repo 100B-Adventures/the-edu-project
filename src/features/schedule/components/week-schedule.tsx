@@ -3,7 +3,10 @@
 import { useMemo, useState } from 'react';
 
 import type { BlockInput } from '@/features/schedule/api/schedule-api';
-import { useScheduleMutations, useScheduleQuery } from '@/features/schedule/hooks/use-schedule';
+import {
+  useScheduleMutations,
+  useScheduleQuery,
+} from '@/features/schedule/hooks/use-schedule';
 import { assignOverlapColumns } from '@/features/schedule/model/overlap-layout';
 import { ScreenState } from '@/shared/components/screen-state';
 import { Button } from '@/shared/components/ui/button';
@@ -85,16 +88,25 @@ export const WeekSchedule = () => {
   };
 
   return (
-    <section className="gap-block-gap flex flex-col" aria-label="이번 주 시간표">
+    <section
+      className="gap-block-gap flex flex-col"
+      aria-label="이번 주 시간표"
+    >
       <div className="gap-content-gap flex flex-wrap items-center justify-between">
         <div className="gap-inline-gap flex items-center">
-          <Button variant="ghost" onClick={() => setWeekOffset((value) => value - 1)}>
+          <Button
+            variant="ghost"
+            onClick={() => setWeekOffset((value) => value - 1)}
+          >
             이전 주
           </Button>
           <strong className="font-body1-heading text-gray-12">
             {from} ~ {to}
           </strong>
-          <Button variant="ghost" onClick={() => setWeekOffset((value) => value + 1)}>
+          <Button
+            variant="ghost"
+            onClick={() => setWeekOffset((value) => value + 1)}
+          >
             다음 주
           </Button>
         </div>
@@ -102,36 +114,70 @@ export const WeekSchedule = () => {
       </div>
 
       {adding && (
-        <div className="border-line-line1 rounded-card p-card-pad gap-content-gap grid border bg-white shell:grid-cols-4">
+        <div className="border-line-line1 rounded-card p-card-pad gap-content-gap shell:grid-cols-4 grid border bg-white">
           <label className="font-body2-heading text-gray-11">
             날짜
-            <Input type="date" value={draft.date} onChange={(event) => setDraft({ ...draft, date: event.target.value })} />
+            <Input
+              type="date"
+              value={draft.date}
+              onChange={(event) =>
+                setDraft({ ...draft, date: event.target.value })
+              }
+            />
           </label>
           <label className="font-body2-heading text-gray-11">
             시작
-            <Input type="time" value={minuteLabel(draft.startMin)} onChange={(event) => {
-              const [hour = 0, minute = 0] = event.target.value.split(':').map(Number);
-              setDraft({ ...draft, startMin: hour * 60 + minute });
-            }} />
+            <Input
+              type="time"
+              value={minuteLabel(draft.startMin)}
+              onChange={(event) => {
+                const [hour = 0, minute = 0] = event.target.value
+                  .split(':')
+                  .map(Number);
+                setDraft({ ...draft, startMin: hour * 60 + minute });
+              }}
+            />
           </label>
           <label className="font-body2-heading text-gray-11">
             끝
-            <Input type="time" value={minuteLabel(draft.endMin)} onChange={(event) => {
-              const [hour = 0, minute = 0] = event.target.value.split(':').map(Number);
-              setDraft({ ...draft, endMin: hour * 60 + minute });
-            }} />
+            <Input
+              type="time"
+              value={minuteLabel(draft.endMin)}
+              onChange={(event) => {
+                const [hour = 0, minute = 0] = event.target.value
+                  .split(':')
+                  .map(Number);
+                setDraft({ ...draft, endMin: hour * 60 + minute });
+              }}
+            />
           </label>
           <label className="font-body2-heading text-gray-11">
             할 일
-            <Input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} placeholder="예: 수학 오답 3문제" />
+            <Input
+              value={draft.title}
+              onChange={(event) =>
+                setDraft({ ...draft, title: event.target.value })
+              }
+              placeholder="예: 수학 오답 3문제"
+            />
           </label>
-          <div className="gap-inline-gap flex shell:col-span-4">
+          <div className="gap-inline-gap shell:col-span-4 flex">
             {(['TEACHER', 'ACADEMY', 'SELF'] as const).map((track) => (
-              <Button key={track} type="button" variant={draft.track === track ? 'primary' : 'outlined'} onClick={() => setDraft({ ...draft, track })}>
+              <Button
+                key={track}
+                type="button"
+                variant={draft.track === track ? 'primary' : 'outlined'}
+                onClick={() => setDraft({ ...draft, track })}
+              >
                 {TRACK_LABEL[track]}
               </Button>
             ))}
-            <Button onClick={save} disabled={mutations.create.isPending}>저장</Button>
+            <Button
+              onClick={save}
+              disabled={mutations.create.isPending}
+            >
+              저장
+            </Button>
           </div>
         </div>
       )}
@@ -140,30 +186,58 @@ export const WeekSchedule = () => {
         status={query.isPending ? 'loading' : query.isError ? 'error' : 'ready'}
         error={{ onRetry: () => query.refetch() }}
       >
-        <div className="gap-content-gap grid min-w-max grid-cols-7 overflow-x-auto" data-testid="week-grid">
-          {days.map((date) => {
-            const key = toDate(date);
-            const blocks = byDay[key] ?? [];
-            return (
-              <article key={key} className="border-line-line1 rounded-card p-content-gap flex min-h-56 w-36 flex-col gap-inline-gap border bg-white">
-                <h3 className="font-body2-heading text-gray-12">{date.toLocaleDateString('ko-KR', { weekday: 'short', day: 'numeric' })}</h3>
-                {blocks.length === 0 ? (
-                  <p className="font-caption-normal text-gray-8">비어 있어요</p>
-                ) : (
-                  blocks.slice(0, 3).map((block) => (
-                    <div key={block.id} className="bg-orange-1 rounded-control-compact p-content-gap text-orange-11 font-caption-normal">
-                      <b className="block">{block.title}</b>
-                      <span>{minuteLabel(block.startMin)} · {TRACK_LABEL[block.track]}</span>
-                      <button type="button" className="min-h-touch-min block underline" onClick={() => mutations.remove.mutate(block.id)} aria-label={`${block.title} 삭제`}>
-                        삭제
-                      </button>
-                      {block.foldedCount > 0 && <span>+{block.foldedCount}</span>}
-                    </div>
-                  ))
-                )}
-              </article>
-            );
-          })}
+        <div
+          className="max-w-full overflow-x-auto"
+          data-testid="week-grid"
+        >
+          <div className="gap-content-gap grid min-w-max grid-cols-7">
+            {days.map((date) => {
+              const key = toDate(date);
+              const blocks = byDay[key] ?? [];
+              return (
+                <article
+                  key={key}
+                  className="border-line-line1 rounded-card p-content-gap gap-inline-gap flex min-h-56 w-36 flex-col border bg-white"
+                >
+                  <h3 className="font-body2-heading text-gray-12">
+                    {date.toLocaleDateString('ko-KR', {
+                      weekday: 'short',
+                      day: 'numeric',
+                    })}
+                  </h3>
+                  {blocks.length === 0 ? (
+                    <p className="font-caption-normal text-gray-8">
+                      비어 있어요
+                    </p>
+                  ) : (
+                    blocks.slice(0, 3).map((block) => (
+                      <div
+                        key={block.id}
+                        className="bg-orange-1 rounded-control-compact p-content-gap text-orange-11 font-caption-normal"
+                      >
+                        <b className="block">{block.title}</b>
+                        <span>
+                          {minuteLabel(block.startMin)} ·{' '}
+                          {TRACK_LABEL[block.track]}
+                        </span>
+                        <button
+                          type="button"
+                          className="min-h-touch-min block underline"
+                          onClick={() => mutations.remove.mutate(block.id)}
+                          aria-label={`${block.title} 삭제`}
+                        >
+                          삭제
+                        </button>
+                        {block.foldedCount > 0 && (
+                          <span>+{block.foldedCount}</span>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </article>
+              );
+            })}
+          </div>
         </div>
       </ScreenState>
     </section>

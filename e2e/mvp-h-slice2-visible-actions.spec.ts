@@ -10,6 +10,8 @@ const evidenceDir =
   process.env.MVP_H_EVIDENCE_DIR ?? '/tmp/dedu-slice2-evidence';
 const widths = [390, 1024, 1440] as const;
 
+test.setTimeout(180_000);
+
 const student = {
   id: 7,
   email: 'slice2-student@test.com',
@@ -145,6 +147,14 @@ const collectConsoleErrors = (page: Page) => {
   return errors;
 };
 
+const expectNoPageOverflow = async (page: Page) => {
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth
+    )
+  ).toBe(true);
+};
+
 test.describe('MVP-H 조각 2 실렌더·실클릭', () => {
   test('학생 시간표 탭은 보이고 눌리며 세 폭에서 렌더된다', async ({
     page,
@@ -156,6 +166,7 @@ test.describe('MVP-H 조각 2 실렌더·실클릭', () => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/dashboard/student');
       await expect(page.locator('body')).toBeVisible();
+      await expectNoPageOverflow(page);
       await screenshot(page, 'student-today', width);
 
       if (phase === 'on') {
@@ -164,6 +175,7 @@ test.describe('MVP-H 조각 2 실렌더·실클릭', () => {
         expect((await week.boundingBox())?.width ?? 0).toBeGreaterThan(0);
         await week.click();
         await expect(page.getByTestId('week-grid')).toBeVisible();
+        await expectNoPageOverflow(page);
         await screenshot(page, 'student-week', width);
 
         const year = page.getByRole('tab', { name: '연간' });
@@ -172,6 +184,7 @@ test.describe('MVP-H 조각 2 실렌더·실클릭', () => {
         await expect(
           page.getByRole('heading', { name: /학습 지도/ })
         ).toBeVisible();
+        await expectNoPageOverflow(page);
         await screenshot(page, 'student-year', width);
       }
     }
@@ -194,11 +207,13 @@ test.describe('MVP-H 조각 2 실렌더·실클릭', () => {
       const input = page.getByLabel('필기 판');
       await expect(input).toBeVisible();
       await input.fill('등차수열은 공차가 일정한 수열이다.');
+      await page.getByRole('button', { name: '새 판 저장' }).click();
+      await expect(page.getByText('판 2 저장됨')).toBeVisible();
       const split = page.getByRole('tab', { name: '반반' });
       await expect(split).toBeVisible();
       await split.click();
-      await page.getByRole('button', { name: '새 판 저장' }).click();
-      await expect(page.getByText('판 2 저장됨')).toBeVisible();
+      await expect(split).toHaveAttribute('aria-selected', 'true');
+      await expectNoPageOverflow(page);
       await screenshot(page, 'note-write', width);
     }
     expect(consoleErrors).toEqual([]);
@@ -213,17 +228,35 @@ test.describe('MVP-H 조각 2 실렌더·실클릭', () => {
     for (const width of widths) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/dashboard/teacher');
-      const profile = page.getByRole('button', { name: '내 정보' });
-      await expect(profile).toBeVisible();
-      expect((await profile.boundingBox())?.width ?? 0).toBeGreaterThan(0);
-      await profile.click();
-      await expect(
-        page.getByRole('menuitem', { name: '로그아웃' })
-      ).toBeVisible();
-      if (phase === 'on' && width >= 1024) {
-        await expect(page.getByText('이번 주 사용')).toBeVisible();
-        await expect(page.getByText(/0분/)).toBeVisible();
+      if (phase === 'off') {
+        const firstRoom = page.getByRole('link', {
+          name: '첫 스터디룸 만들기',
+        });
+        await expect(firstRoom).toBeVisible();
+        expect((await firstRoom.boundingBox())?.width ?? 0).toBeGreaterThan(0);
+        await firstRoom.click();
+        await expect(page).toHaveURL(/\/study-rooms\/new$/);
+        await page.goBack();
+        await expect(
+          page.getByRole('heading', { name: '내 수업' })
+        ).toBeVisible();
+      } else {
+        const profile = page.getByRole('button', { name: '내 정보' });
+        await expect(profile).toBeVisible();
+        expect((await profile.boundingBox())?.width ?? 0).toBeGreaterThan(0);
+        await profile.click();
+        await expect(
+          page.getByRole('menuitem', { name: '로그아웃' })
+        ).toBeVisible();
       }
+      if (phase === 'on' && width >= 1024) {
+        const topBar = page.getByTestId('odok-top-bar');
+        await expect(topBar.getByText('이번 주 사용')).toBeVisible();
+        await expect(
+          topBar.locator('b').filter({ hasText: '0분 / 30분' })
+        ).toBeVisible();
+      }
+      await expectNoPageOverflow(page);
       await screenshot(page, 'teacher-dashboard', width);
     }
     expect(consoleErrors).toEqual([]);
