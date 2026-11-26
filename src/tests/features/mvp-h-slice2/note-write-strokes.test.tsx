@@ -56,9 +56,9 @@ describe('MVP-H 조각 2 노트 쓰기', () => {
     await user.click(screen.getByRole('button', { name: '새 판 저장' }));
 
     await waitFor(() => expect(mocks.saveVersion).toHaveBeenCalled());
-    expect(JSON.parse(mocks.saveVersion.mock.calls[0][2]).strokes).toHaveLength(
-      1
-    );
+    const handwriting = mocks.saveVersion.mock.calls.at(0)?.[2];
+    expect(handwriting).toBeDefined();
+    expect(JSON.parse(handwriting ?? '{}').strokes).toHaveLength(1);
     expect(mocks.createActivitySession).toHaveBeenCalledWith(
       expect.objectContaining({
         kind: 'NOTE_WRITE',
