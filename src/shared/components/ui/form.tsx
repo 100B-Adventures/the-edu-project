@@ -28,7 +28,7 @@ const FormLabel = ({
     <Label.Root
       htmlFor={id}
       className={cn(
-        'min-h-touch-min tablet:min-h-0 mb-2 inline-flex w-fit items-center',
+        'min-h-touch-min min-w-touch-min shell:min-h-0 shell:min-w-0 mb-2 inline-flex w-fit items-center',
         className
       )}
       {...props}

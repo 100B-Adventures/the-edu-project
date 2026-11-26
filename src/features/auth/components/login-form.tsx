@@ -23,7 +23,7 @@ import { LoginFormValues, loginSchema } from '../schemas/login';
 
 const LoginFormtwStyles = {
   wrapper: 'space-y-10 pb-10 pt-4',
-  link: 'text-key-color-primary min-h-touch-min tablet:min-h-0 inline-flex w-fit items-center px-2 underline tablet:px-0',
+  link: 'text-key-color-primary min-h-touch-min shell:min-h-0 inline-flex w-fit items-center px-2 underline tablet:px-0',
 };
 
 export default function LoginForm() {

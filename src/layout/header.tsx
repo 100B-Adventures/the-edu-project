@@ -96,7 +96,7 @@ export const Header = () => {
         <div className="flex min-w-0 items-center gap-2">
           <Link
             href={PUBLIC.CORE.INDEX}
-            className="min-h-touch-min tablet:min-h-0 inline-flex items-center"
+            className="min-h-touch-min shell:min-h-0 inline-flex items-center"
             onClick={() => {
               // GNB 로고 클릭 → 포털 홈('/'). 마케팅 랜딩(/welcome)은 별도 진입.
               trackGnbLogoClick(session?.role ?? null);
