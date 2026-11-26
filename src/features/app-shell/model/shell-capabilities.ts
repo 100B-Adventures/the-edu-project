@@ -4,8 +4,8 @@
  * false 인 능력은 그리지 않는다. 각 조각 PR 이 해당 값을 true 로 바꾼다(환경변수 아님).
  */
 export const SHELL_CAPABILITIES = {
-  schedule: false,
-  pins: false,
+  schedule: true,
+  pins: true,
   program: false,
   levelTest: false,
   ebookLibrary: false,

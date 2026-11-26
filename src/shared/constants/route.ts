@@ -74,6 +74,8 @@ const DASHBOARD = {
     `/dashboard/teacher/students/${studentId}`,
   UNIT_NOTES: '/dashboard/student/unit-notes',
   UNIT_NOTE_ROOM: (id: number) => `/dashboard/student/unit-notes/${id}`,
+  UNIT_NOTE_WRITE: (nodeId: number, pageId: number) =>
+    `/dashboard/student/unit-notes/${nodeId}/write?pageId=${pageId}`,
   EXAM_ATTEMPT: (id: number) => `/dashboard/student/exams/${id}`,
   EXAM_HALL: '/dashboard/student/exam-hall',
   CONNECTIONS: '/dashboard/connections',

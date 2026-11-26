@@ -40,6 +40,8 @@ import {
   useSolutionNoteDetailQuery,
 } from '../hooks/use-solution-note';
 import { StuckReasonChips } from './stuck-reason-chips';
+import { ConditionComingSoon } from './condition-coming-soon';
+import { EditShell } from '@/features/edit-shell/components/edit-shell';
 
 type SolutionNoteViewProps = { solutionNoteId: number };
 
@@ -440,8 +442,10 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
         </span>
         <Labels detail={detail} />
       </header>
-      <ProblemBand challengeId={detail.challengeId} />
-      <div className="gap-section-gap grid min-w-0 lg:grid-cols-2">
+      <EditShell challengeId={detail.challengeId ?? undefined}>
+        <div className="gap-block-gap flex flex-col">
+          <ProblemBand challengeId={detail.challengeId} />
+          <div className="gap-section-gap grid min-w-0 lg:grid-cols-2">
         <section
           aria-label="내 풀이"
           className="border-line-line1 rounded-card flex min-w-0 flex-col border bg-white"
@@ -488,7 +492,10 @@ export const SolutionNoteView = ({ solutionNoteId }: SolutionNoteViewProps) => {
           </div>
         </section>
         <ExplanationPane solutionNoteId={solutionNoteId} />
-      </div>
+          </div>
+          <ConditionComingSoon />
+        </div>
+      </EditShell>
       <div className="border-line-line1 bottom-control-xl fixed right-0 left-0 z-(--z-layer-chrome) flex flex-col gap-3 border-t bg-white p-3 lg:bottom-0 lg:left-(--spacing-sidebar-width) lg:flex-row lg:items-center">
         <div className="min-w-0 lg:flex-1">
           <StuckReasonChips

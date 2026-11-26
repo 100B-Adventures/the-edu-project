@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 
 import { TodayPage } from '@/features/today/components/today-page';
 import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { OVERVIEW, renderWithQuery } from '../mvp-h-slice1/helpers';
@@ -32,6 +33,12 @@ vi.mock('@/features/dashboard/hooks/use-wrong-answer-query', () => ({
 vi.mock('@/features/dashboard/components/student/weekly-retro-card', () => ({
   WeeklyRetroCard: () => <div data-testid="weekly-retro" />,
 }));
+vi.mock('@/features/schedule/components/week-schedule', () => ({
+  WeekSchedule: () => <div>이번 주 시간표 화면</div>,
+}));
+vi.mock('@/features/schedule/components/year-schedule', () => ({
+  YearSchedule: () => <div>연간 일정 화면</div>,
+}));
 vi.mock('@/shared/lib/mvp-h-slice', () => ({
   isMvpHSliceEnabled: () => true,
 }));
@@ -58,5 +65,18 @@ describe('MVP-H 학습 홈 N회독 개요 조회', () => {
       );
       expect(overviewCalls).toHaveLength(1);
     });
+  });
+
+  it('T-SHL-C3 오늘 주소 안에서 이번 주와 연간 탭이 실제 화면을 바꾼다', async () => {
+    const user = userEvent.setup();
+    renderWithQuery(<TodayPage />);
+
+    const week = screen.getByRole('tab', { name: '이번 주' });
+    expect(week).toBeVisible();
+    expect(week).toHaveClass('min-h-touch-min');
+    await user.click(week);
+    expect(screen.getByText('이번 주 시간표 화면')).toBeVisible();
+    await user.click(screen.getByRole('tab', { name: '연간' }));
+    expect(screen.getByText('연간 일정 화면')).toBeVisible();
   });
 });

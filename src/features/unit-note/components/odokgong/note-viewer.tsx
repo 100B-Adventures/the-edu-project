@@ -6,7 +6,9 @@ import Link from 'next/link';
 import type { UnitNoteDetail } from '@/entities/unit-note';
 import { monthDayLabel } from '@/features/app-shell/model/format';
 import { useUnitNoteDetailQuery } from '@/features/unit-note/hooks/use-unit-note-query';
+import { useNotePins } from '@/features/unit-note/hooks/use-note-collaboration';
 import { ScreenState } from '@/shared/components/screen-state';
+import { Button } from '@/shared/components/ui/button';
 import { PRIVATE } from '@/shared/constants';
 
 import { useStudentNoteDetailQuery } from '../../hooks/use-student-note-detail';
@@ -20,10 +22,26 @@ type NoteViewerProps = {
 const SidePanel = ({
   detail,
   showProblems,
+  pageId,
 }: {
   detail: UnitNoteDetail;
   showProblems: boolean;
+  pageId?: number;
 }) => (
+  <SidePanelContent detail={detail} showProblems={showProblems} pageId={pageId} />
+);
+
+const SidePanelContent = ({
+  detail,
+  showProblems,
+  pageId,
+}: {
+  detail: UnitNoteDetail;
+  showProblems: boolean;
+  pageId?: number;
+}) => {
+  const pins = useNotePins(pageId);
+  return (
   <aside
     className="gap-block-gap flex flex-col"
     aria-label="노트 옆 패널"
@@ -71,14 +89,22 @@ const SidePanel = ({
       </section>
     )}
     <section className="border-line-line1 rounded-card p-card-pad border bg-white">
-      <h2 className="font-body2-heading text-text-main">핀</h2>
-      {/* 핀은 조각 2 능력이다. 지금은 입력 UI 없이 안내 문구만 둔다. */}
-      <p className="font-body2-normal text-gray-9">
-        선생님 핀이 달리면 여기에 보여요
-      </p>
+      <h2 className="font-body2-heading text-text-main">핀 {pins.data?.length ?? 0}</h2>
+      {(pins.data?.length ?? 0) === 0 ? (
+        <p className="font-body2-normal text-gray-9">선생님 핀이 달리면 여기에 보여요</p>
+      ) : (
+        <ul className="gap-inline-gap mt-content-gap flex flex-col">
+          {pins.data?.map((pin) => (
+            <li key={pin.id} className="bg-orange-1 rounded-control-compact p-content-gap font-body2-normal text-orange-11">
+              {pin.body}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   </aside>
-);
+  );
+};
 
 /** 노트 크게 보기 + 오른쪽 패널. 선생님은 같은 화면을 읽기 전용으로 본다(AC-68c). */
 export const NoteViewer = ({ nodeId, studentId }: NoteViewerProps) => {
@@ -115,7 +141,15 @@ export const NoteViewer = ({ nodeId, studentId }: NoteViewerProps) => {
         forbidden={{ title: '같은 방의 학생 노트만 볼 수 있어요' }}
       >
         {detail && (
-          <div className="gap-block-gap shell:grid shell:grid-cols-[1fr_20rem] flex flex-col">
+          <div className="gap-block-gap flex flex-col">
+            {studentId === undefined && detail.pages[0] && (
+              <Button asChild className="self-end">
+                <Link href={PRIVATE.DASHBOARD.UNIT_NOTE_WRITE(nodeId, detail.pages[0].pageId)}>
+                  노트 쓰기
+                </Link>
+              </Button>
+            )}
+            <div className="gap-block-gap shell:grid shell:grid-cols-[1fr_20rem] flex flex-col">
             <ol className="gap-block-gap flex min-w-0 flex-col">
               {detail.pages.map((page) => (
                 <li key={page.pageId}>
@@ -135,7 +169,9 @@ export const NoteViewer = ({ nodeId, studentId }: NoteViewerProps) => {
             <SidePanel
               detail={detail}
               showProblems={studentId === undefined}
+              pageId={detail.pages[0]?.pageId}
             />
+            </div>
           </div>
         )}
       </ScreenState>

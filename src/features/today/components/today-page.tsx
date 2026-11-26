@@ -10,15 +10,21 @@ import {
 } from '@/features/dashboard/hooks';
 import { useDailyProblemsQuery } from '@/features/dashboard/hooks/use-wrong-answer-query';
 import { useReviewOverviewQuery } from '@/features/review/hooks/use-review';
+import { WeekSchedule } from '@/features/schedule/components/week-schedule';
+import { YearSchedule } from '@/features/schedule/components/year-schedule';
+import { SHELL_CAPABILITIES } from '@/features/app-shell/model/shell-capabilities';
 import { ActionCard } from '@/shared/components/action-card/action-card';
 import { ScreenState } from '@/shared/components/screen-state';
 import { StatChip } from '@/shared/components/ui/stat-chip';
+import { SegmentedTabs } from '@/shared/components/ui/segmented-tabs';
 import { isMvpHSliceEnabled } from '@/shared/lib/mvp-h-slice';
 
 import { pickTodayAction } from '../model/pick-today-action';
 import { ReceivedList } from './received-list';
 
-/** 내 학습(오늘). 받은 것, 오늘 할 일 하나, 진행 숫자, 오늘 회고. 이번 주·연간 탭은 시간표(조각 2) 전까지 그리지 않는다. */
+type TodayTab = 'today' | 'week' | 'year';
+
+/** 내 학습의 오늘·이번 주·연간을 같은 주소에서 전환한다. */
 export const TodayPage = () => {
   const reviewEnabled = isMvpHSliceEnabled();
   const todosQuery = useStudentTodosQuery();
@@ -27,6 +33,7 @@ export const TodayPage = () => {
   const messagesQuery = useReceivedMessagesQuery();
   const updateTodo = useUpdateTodo();
   const [pendingId, setPendingId] = useState<number | null>(null);
+  const [tab, setTab] = useState<TodayTab>('today');
 
   const action = useMemo(
     () =>
@@ -52,43 +59,62 @@ export const TodayPage = () => {
       className="px-section-gap py-section-gap gap-block-gap mx-auto flex w-full max-w-280 flex-col"
       data-testid="today-page"
     >
-      <ReceivedList items={messagesQuery.data ?? []} />
-      <ScreenState
-        status={status}
-        error={{ onRetry: () => todosQuery.refetch() }}
-      >
-        <ActionCard
-          eyebrow="오늘 할 일 하나"
-          title={action.title}
-          subtitle={action.subtitle}
-          cta={{
-            label: action.cta.label,
-            href: action.cta.href,
-            disabled: pendingId !== null,
-            onClick:
-              action.cta.todoId === undefined
-                ? undefined
-                : () => {
-                    const id = action.cta.todoId as number;
-                    setPendingId(id);
-                    updateTodo.mutate(
-                      { id, input: { status: 'DONE' } },
-                      { onSettled: () => setPendingId(null) }
-                    );
-                  },
-          }}
+      {SHELL_CAPABILITIES.schedule && (
+        <SegmentedTabs
+          ariaLabel="학습 기간"
+          variant="underline"
+          items={[
+            { id: 'today', label: '오늘' },
+            { id: 'week', label: '이번 주' },
+            { id: 'year', label: '연간' },
+          ]}
+          value={tab}
+          onChange={(id) => setTab(id as TodayTab)}
         />
-        {total > 0 && (
-          <div className="gap-content-gap flex flex-wrap">
-            <StatChip
-              label="이번 주 할 일"
-              value={`${done}/${total}`}
-              tone="brand"
+      )}
+      {tab === 'today' && (
+        <>
+          <ReceivedList items={messagesQuery.data ?? []} />
+          <ScreenState
+            status={status}
+            error={{ onRetry: () => todosQuery.refetch() }}
+          >
+            <ActionCard
+              eyebrow="오늘 할 일 하나"
+              title={action.title}
+              subtitle={action.subtitle}
+              cta={{
+                label: action.cta.label,
+                href: action.cta.href,
+                disabled: pendingId !== null,
+                onClick:
+                  action.cta.todoId === undefined
+                    ? undefined
+                    : () => {
+                        const id = action.cta.todoId as number;
+                        setPendingId(id);
+                        updateTodo.mutate(
+                          { id, input: { status: 'DONE' } },
+                          { onSettled: () => setPendingId(null) }
+                        );
+                      },
+              }}
             />
-          </div>
-        )}
-      </ScreenState>
-      <WeeklyRetroCard />
+            {total > 0 && (
+              <div className="gap-content-gap flex flex-wrap">
+                <StatChip
+                  label="이번 주 할 일"
+                  value={`${done}/${total}`}
+                  tone="brand"
+                />
+              </div>
+            )}
+          </ScreenState>
+          <WeeklyRetroCard />
+        </>
+      )}
+      {tab === 'week' && <WeekSchedule />}
+      {tab === 'year' && <YearSchedule />}
     </div>
   );
 };

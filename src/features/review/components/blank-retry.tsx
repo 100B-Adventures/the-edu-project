@@ -11,6 +11,7 @@ import {
 } from '@/entities/handwriting';
 import type { BlankRetryResult } from '@/entities/wrong-answer';
 import { useWrongAnswersQuery } from '@/features/dashboard/hooks/use-wrong-answer-query';
+import { EditShell } from '@/features/edit-shell/components/edit-shell';
 import { useOpenChallengeDetailQuery } from '@/features/open-challenge/hooks/use-open-challenge';
 import { useHandwritingConsent } from '@/features/solution-note/use-handwriting-consent';
 import { SolutionDrawingPad, type Stroke } from '@/shared/components/drawing';
@@ -281,6 +282,8 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
       <h1 className="font-headline1-heading text-text-main">
         백지에 다시 풀기
       </h1>
+      <EditShell challengeId={challengeId ?? undefined}>
+        <div className="gap-section-gap flex flex-col">
       <section
         aria-label="문제"
         className="border-line-line1 rounded-card p-card-pad flex flex-col gap-3 border bg-white"
@@ -374,6 +377,8 @@ export const BlankRetry = ({ wrongAnswerId }: BlankRetryProps) => {
           </Button>
         </section>
       )}
+        </div>
+      </EditShell>
       <div className="border-line-line1 bottom-control-xl fixed right-0 left-0 z-(--z-layer-chrome) flex justify-end border-t bg-white p-3 lg:bottom-0 lg:left-(--spacing-sidebar-width)">
         <Button
           size="large"
