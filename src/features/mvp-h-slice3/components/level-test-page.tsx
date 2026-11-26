@@ -89,7 +89,7 @@ export const LevelTestPage = () => {
         await slice3Repository.answerLevel(
           session.testId,
           problemSetId,
-          answers[problemSetId]
+          answers[problemSetId] ?? ''
         );
       }
       if (declaration.trim()) {

@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
+import { SHELL_CAPABILITIES } from '@/features/app-shell/model/shell-capabilities';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { NotificationPopover } from '@/features/notifications/components/notification-popover';
 import { useMyPointWalletQuery } from '@/features/point/hooks/use-point';
@@ -44,6 +45,16 @@ import {
   shouldShowDesktopDiscoveryLinks,
   shouldShowMobileDiscoveryLinks,
 } from './header-policy';
+
+const SHELL_DISCOVERY_LINKS: ReadonlyArray<readonly [string, string]> = [
+  ['58일 프로그램', '/courses'],
+  ['커뮤니티', '/community'],
+  ['전자책', '/library'],
+  ['고민상담', '/consult'],
+  ...(SHELL_CAPABILITIES.levelTest
+    ? ([['58일 레벨 테스트', '/level']] as const)
+    : []),
+];
 
 /* 포인트 칩(R-13) — "내 학습" 셸(친구·트리·학습)엔 이미 상시 노출되는데
  * 오픈챌린지 랜딩 셸(이 GNB)만 없었다. QA 정합표(docs/qa/design-conformance-matrix.md
@@ -124,13 +135,7 @@ export const Header = () => {
               aria-label="오독공 둘러보기"
               className="ml-5 flex min-w-0 gap-2"
             >
-              {[
-                ['58일 프로그램', '/courses'],
-                ['커뮤니티', '/community'],
-                ['전자책', '/library'],
-                ['고민상담', '/consult'],
-                ['58일 레벨 테스트', '/level'],
-              ].map(([label, href]) => (
+              {SHELL_DISCOVERY_LINKS.map(([label, href]) => (
                 <Link
                   key={label}
                   href={href}
@@ -289,13 +294,7 @@ export const Header = () => {
                 <PopoverNav>
                   {showMobileDiscoveryLinks && shellOn && (
                     <>
-                      {[
-                        ['58일 프로그램', '/courses'],
-                        ['커뮤니티', '/community'],
-                        ['전자책', '/library'],
-                        ['고민상담', '/consult'],
-                        ['58일 레벨 테스트', '/level'],
-                      ].map(([label, href]) => (
+                      {SHELL_DISCOVERY_LINKS.map(([label, href]) => (
                         <PopoverLink
                           key={label}
                           href={href}

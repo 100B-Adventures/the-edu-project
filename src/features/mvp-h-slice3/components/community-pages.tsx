@@ -360,9 +360,10 @@ export const BestNotesPage = () => {
   const [enrollmentId, setEnrollmentId] = useState('');
   const [enrollmentMessage, setEnrollmentMessage] = useState('');
   const toggle = async (id: number, selected: boolean) => {
-    if (!selected && !reason[id]?.trim()) return;
+    const selectedReason = reason[id]?.trim();
+    if (!selected && !selectedReason) return;
     if (selected) await slice3Repository.deleteBest(id, weekOf);
-    else await slice3Repository.pickBest(id, reason[id], weekOf);
+    else await slice3Repository.pickBest(id, selectedReason ?? '', weekOf);
     await resource.reload();
   };
   const confirmEnrollment = async () => {

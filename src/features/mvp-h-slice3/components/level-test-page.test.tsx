@@ -42,7 +42,7 @@ describe('MVP-H 조각 3 레벨 테스트', () => {
     ).toBeDisabled();
     expect(
       screen.getByRole('link', { name: '전자책부터 둘러보기' })
-    ).toHaveAttribute('href', '/courses');
+    ).toHaveAttribute('href', '/library');
     expect(
       screen.getByRole('link', { name: '고민 상담 보기' })
     ).toHaveAttribute('href', '/consult');

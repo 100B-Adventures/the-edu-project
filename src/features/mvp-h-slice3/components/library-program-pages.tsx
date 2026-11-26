@@ -135,7 +135,7 @@ export const ProgramPathPage = () => {
   const program = useSlice3Resource(loadProgram);
   const days = useSlice3Resource(loadDays);
   const [couponError, setCouponError] = useState('');
-  const useCoupon = async (forDate: string | null) => {
+  const handleCouponUse = async (forDate: string | null) => {
     const coupon = program.data?.coupons[0];
     if (!coupon || !forDate) {
       setCouponError('사용할 수 있는 쿠폰이나 날짜가 없어요.');
@@ -195,8 +195,8 @@ export const ProgramPathPage = () => {
                   {day.status === 'MISSED' ? (
                     <Button
                       variant="outlined"
-                      disabled={!program.data.bufferCoupons}
-                      onClick={() => void useCoupon(day.date)}
+                      disabled={!program.data?.bufferCoupons}
+                      onClick={() => void handleCouponUse(day.date)}
                     >
                       버퍼 쿠폰으로 열기
                     </Button>
