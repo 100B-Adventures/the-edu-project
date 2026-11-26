@@ -190,14 +190,17 @@ export const WeekSchedule = () => {
           className="max-w-full overflow-x-auto"
           data-testid="week-grid"
         >
-          <div className="gap-content-gap grid min-w-max grid-cols-7">
+          <div
+            className="gap-content-gap shell:w-full shell:min-w-0 grid min-w-max grid-cols-7"
+            data-testid="week-grid-columns"
+          >
             {days.map((date) => {
               const key = toDate(date);
               const blocks = byDay[key] ?? [];
               return (
                 <article
                   key={key}
-                  className="border-line-line1 rounded-card p-content-gap gap-inline-gap flex min-h-56 w-36 flex-col border bg-white"
+                  className="border-line-line1 rounded-card p-content-gap gap-inline-gap shell:w-auto shell:min-w-0 flex min-h-56 w-36 flex-col border bg-white"
                 >
                   <h3 className="font-body2-heading text-gray-12">
                     {date.toLocaleDateString('ko-KR', {

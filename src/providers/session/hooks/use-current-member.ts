@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 
 import { useCoreCurrentMember } from '@/entities/member';
 import { resolveSessionLoginDestination } from '@/features/auth/lib/redirect';
+import { isMvpHShellEnabled } from '@/shared/lib/mvp-h-slice';
 import { useMemberStore } from '@/store';
 
 // 로그인한 사용자 정보 조회
@@ -26,6 +27,7 @@ export const useCurrentMember = (initialHasSession: boolean) => {
             token: params.get('token'),
             redirect: params.get('redirect'),
             from: params.get('from'),
+            shellEnabled: isMvpHShellEnabled(),
           })
         );
       }

@@ -32,6 +32,46 @@ const responseFor = (url: URL, method: string) => {
     return { track: 'PAID', primaryStudyRoomId: 3, studyRoomCount: 1 };
   }
   if (pathname.endsWith('/student/resume')) return { kind: 'NONE' };
+  if (pathname.endsWith('/student/todos')) {
+    return {
+      weekOf: '2026-11-23',
+      weekEnd: '2026-11-29',
+      totalCount: 0,
+      doneCount: 0,
+      skippedCount: 0,
+      items: [],
+    };
+  }
+  if (pathname.endsWith('/student/schedule')) {
+    return {
+      blocks: [],
+      defaultScope: { kind: 'WEEK', until: '2026-11-29' },
+    };
+  }
+  if (pathname.endsWith('/student/daily-problems')) {
+    return {
+      queueDate: '2026-11-27',
+      backlogCount: 0,
+      onboarding: false,
+      items: [],
+      handoff: { returnUrl: '/dashboard/student', origin: 'DAILY_PROBLEM' },
+    };
+  }
+  if (pathname.endsWith('/student/review/overview')) {
+    return {
+      today: '2026-11-27',
+      reviewDay: 1,
+      me: { level: 1, exp: 0, expToNext: 100, source: 'LEVEL' },
+      quest: { items: [], expReward: 0 },
+      curve: {
+        buckets: [],
+        dueNow: 0,
+        soonForget: { tomorrow: 0, dayAfter: 0 },
+      },
+      situation: { total: 0, byReason: {} },
+      unit: [],
+    };
+  }
   if (pathname.endsWith('/student/library')) {
     return [
       {
@@ -311,6 +351,7 @@ const screens = [
     '/pay-done?paymentKey=pay_test&orderId=dedu_order_fixture&amount=280000&type=program',
   ],
   ['library', '/library'],
+  ['student-week', '/dashboard/student'],
   ['program-plan', '/dashboard/student/program'],
   ['program-day', '/dashboard/student/program/days/18'],
   ['public-sales', '/courses/1'],
@@ -385,5 +426,39 @@ test.describe('MVP-H 조각 3 실렌더·실클릭', () => {
     await expect(
       page.getByRole('button', { name: '응원 보내기' })
     ).toBeVisible();
+  });
+
+  test('학생 로그인 착지와 1024 주간표 7열을 플래그 계약대로 직접 조작한다', async ({
+    page,
+  }) => {
+    await mockApi(page);
+    await page.setViewportSize({ width: 1024, height: 900 });
+
+    await page.goto('/login');
+    await expect(page).toHaveURL(
+      phase === 'on' ? /\/dashboard\/student$/ : /\/learning$/
+    );
+    if (phase === 'off') return;
+
+    const grid = page.getByTestId('week-grid');
+    await expect(grid).toBeVisible();
+    const layout = await grid.evaluate((viewport) => {
+      const cards = Array.from(viewport.querySelectorAll('article'));
+      const last = cards.at(-1)?.getBoundingClientRect();
+      const bounds = viewport.getBoundingClientRect();
+      return {
+        count: cards.length,
+        fits: Boolean(last && last.right <= bounds.right + 1),
+        overflow: viewport.scrollWidth > viewport.clientWidth,
+      };
+    });
+    expect(layout).toEqual({ count: 7, fits: true, overflow: false });
+
+    const previous = page.getByRole('button', { name: '이전 주' });
+    expect((await previous.boundingBox())?.height ?? 0).toBeGreaterThan(0);
+    const range = page.locator('section[aria-label="이번 주 시간표"] strong');
+    const before = await range.textContent();
+    await previous.click();
+    await expect(range).not.toHaveText(before ?? '');
   });
 });

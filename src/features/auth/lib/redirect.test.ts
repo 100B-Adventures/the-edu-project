@@ -5,9 +5,24 @@ import {
   resolveDashboardFromRedirect,
   resolveLoginDestination,
   resolveOAuthFrom,
+  resolveRoleDestination,
   resolveSessionLoginDestination,
   sanitizeRedirect,
 } from './redirect';
+
+describe('resolveRoleDestination', () => {
+  test('T-MVPH-LOGIN-1 셸을 켠 학생은 승인 시안의 내 학습 첫 화면으로 간다', () => {
+    expect(resolveRoleDestination('ROLE_STUDENT', true)).toBe(
+      '/dashboard/student'
+    );
+  });
+
+  test('T-MVPH-LOGIN-2 셸을 끈 학생과 교사의 기존 착지는 바뀌지 않는다', () => {
+    expect(resolveRoleDestination('ROLE_STUDENT', false)).toBe('/learning');
+    expect(resolveRoleDestination('ROLE_TEACHER', true)).toBe('/dashboard');
+    expect(resolveRoleDestination('ROLE_TEACHER', false)).toBe('/dashboard');
+  });
+});
 
 describe('sanitizeRedirect', () => {
   test('앱 내부 절대경로는 그대로 허용한다', () => {
@@ -113,6 +128,15 @@ describe('resolveOAuthFrom', () => {
 });
 
 describe('resolveSessionLoginDestination', () => {
+  test('T-MVPH-LOGIN-3 세션 감지 경로도 셸 ON/OFF 학생 착지를 같은 규칙으로 쓴다', () => {
+    expect(
+      resolveSessionLoginDestination({ role: 'ROLE_STUDENT', shellEnabled: true })
+    ).toBe('/dashboard/student');
+    expect(
+      resolveSessionLoginDestination({ role: 'ROLE_STUDENT', shellEnabled: false })
+    ).toBe('/learning');
+  });
+
   test('로그인 URL의 내부 redirect를 세션 갱신 경로에서도 우선한다', () => {
     expect(
       resolveSessionLoginDestination({

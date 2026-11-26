@@ -18,6 +18,15 @@ export const sanitizeRedirect = (raw?: string | null): string | null => {
   return raw;
 };
 
+/** 역할별 기본 착지. MVP-H 셸을 켠 학생만 승인 시안의 내 학습으로 보낸다. */
+export const resolveRoleDestination = (
+  role: string | null | undefined,
+  shellEnabled: boolean
+): string => {
+  if (role !== 'ROLE_STUDENT') return '/dashboard';
+  return shellEnabled ? '/dashboard/student' : '/learning';
+};
+
 /**
  * 로그인 성공 후 이동할 목적지를 계산한다.
  * - ROLE_MEMBER(프로필 미완성): select-role 로 보내되, 안전한 redirect 가 있으면
@@ -52,11 +61,13 @@ export const resolveSessionLoginDestination = ({
   token,
   redirect,
   from,
+  shellEnabled = false,
 }: {
   role: 'ROLE_MEMBER' | string | null | undefined;
   token?: string | null;
   redirect?: string | null;
   from?: string | null;
+  shellEnabled?: boolean;
 }): string => {
   if (token) {
     return `/dashboard?token=${encodeURIComponent(token)}`;
@@ -65,7 +76,7 @@ export const resolveSessionLoginDestination = ({
   return resolveLoginDestination({
     role,
     redirectTo: redirect ?? from,
-    roleDest: role === 'ROLE_STUDENT' ? '/learning' : '/dashboard',
+    roleDest: resolveRoleDestination(role, shellEnabled),
   });
 };
 
