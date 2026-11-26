@@ -37,6 +37,7 @@ import {
   trackGnbMenuClick,
   trackGnbProfileClick,
 } from '@/shared/lib/analytics';
+import { isMvpHShellEnabled } from '@/shared/lib/mvp-h-slice';
 import { useMemberStore } from '@/store';
 
 import {
@@ -63,6 +64,7 @@ export const Header = () => {
   const router = useRouter();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const shellOn = isMvpHShellEnabled();
   const { data: profileImageData } = useProfileImage({
     enabled: !!session,
   });
@@ -117,7 +119,35 @@ export const Header = () => {
             height={20}
           />
 
-          {showDesktopDiscoveryLinks && (
+          {showDesktopDiscoveryLinks && shellOn && (
+            <nav
+              aria-label="오독공 둘러보기"
+              className="ml-5 flex min-w-0 gap-2"
+            >
+              {[
+                ['58일 프로그램', '/courses'],
+                ['커뮤니티', '/community'],
+                ['전자책', '/library'],
+                ['고민상담', '/consult'],
+                ['58일 레벨 테스트', '/level'],
+              ].map(([label, href]) => (
+                <Link
+                  key={label}
+                  href={href}
+                  className={cn(
+                    'max-desktop:hidden rounded-xl px-2.5 py-2 text-white',
+                    pathname.startsWith(href)
+                      ? 'bg-gray-11'
+                      : 'hover:bg-gray-11'
+                  )}
+                >
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          )}
+
+          {showDesktopDiscoveryLinks && !shellOn && (
             <div className="ml-5 flex min-w-0 gap-2">
               <Link
                 href={PUBLIC.OPEN_CHALLENGE.LIST}
@@ -257,7 +287,27 @@ export const Header = () => {
                 className="w-[320px]"
               >
                 <PopoverNav>
-                  {showMobileDiscoveryLinks && (
+                  {showMobileDiscoveryLinks && shellOn && (
+                    <>
+                      {[
+                        ['58일 프로그램', '/courses'],
+                        ['커뮤니티', '/community'],
+                        ['전자책', '/library'],
+                        ['고민상담', '/consult'],
+                        ['58일 레벨 테스트', '/level'],
+                      ].map(([label, href]) => (
+                        <PopoverLink
+                          key={label}
+                          href={href}
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <span>{label}</span>
+                        </PopoverLink>
+                      ))}
+                      <PopoverSeparator />
+                    </>
+                  )}
+                  {showMobileDiscoveryLinks && !shellOn && (
                     <>
                       <PopoverLink
                         href={PUBLIC.OPEN_CHALLENGE.LIST}

@@ -6,11 +6,12 @@
 export const SHELL_CAPABILITIES = {
   schedule: true,
   pins: true,
-  program: false,
+  program: true,
+  // Exact S04~S07 token/problem/media contract is not complete in slice 3 v1.0.0.
   levelTest: false,
-  ebookLibrary: false,
-  bestNotes: false,
-  declarations: false,
+  ebookLibrary: true,
+  bestNotes: true,
+  declarations: true,
   homeReviews: false,
   phoneLogin: false,
 } as const;

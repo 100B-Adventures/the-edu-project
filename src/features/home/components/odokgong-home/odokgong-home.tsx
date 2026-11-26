@@ -1,8 +1,11 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 import Link from 'next/link';
 
 import { useResumeQuery } from '@/features/app-shell/hooks/use-shell-queries';
+import { SHELL_CAPABILITIES } from '@/features/app-shell/model/shell-capabilities';
 import { PortalPopularPosts } from '@/features/home/components/portal-popular-posts';
 import {
   DEFAULT_HERO_VARIANT,
@@ -11,6 +14,8 @@ import {
   PROGRAM_BOARD,
   STUDY_FLOW_FOUR,
 } from '@/features/home/content/odokgong-home';
+import { slice3Repository } from '@/features/mvp-h-slice3/api/slice3.repository';
+import type { FeedItem } from '@/features/mvp-h-slice3/model/types';
 import { useSession } from '@/providers/session/session-context';
 import { ActionCard } from '@/shared/components/action-card/action-card';
 import { PRIVATE, PUBLIC } from '@/shared/constants';
@@ -40,6 +45,75 @@ const ResumeLine = () => {
       subtitle={item.subtitle ?? undefined}
       cta={{ label: RESUME_LABEL[item.kind], href: RESUME_HREF[item.kind] }}
     />
+  );
+};
+
+const CommunityHighlights = () => {
+  const [declarations, setDeclarations] = useState<FeedItem[]>([]);
+  const [bestNotes, setBestNotes] = useState<FeedItem[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all([
+      slice3Repository.feed('DECLARATION'),
+      slice3Repository.feed('NOTE'),
+    ])
+      .then(([nextDeclarations, notes]) => {
+        if (!active) return;
+        setDeclarations(nextDeclarations.slice(0, 3));
+        setBestNotes(notes.filter((note) => note.best).slice(0, 3));
+      })
+      .catch(() => {
+        if (!active) return;
+        setDeclarations([]);
+        setBestNotes([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (declarations.length === 0 && bestNotes.length === 0) return null;
+
+  return (
+    <section
+      aria-label="학생 공개 기록"
+      className="gap-grid-gap tablet:grid-cols-2 grid"
+    >
+      {declarations.length > 0 && (
+        <div className="border-line-line1 rounded-card p-card-pad gap-content-gap flex flex-col border bg-white">
+          <h2 className="font-body2-heading text-text-main">자기선언</h2>
+          {declarations.map((item) => (
+            <p
+              key={item.id}
+              className="font-body2-normal text-gray-9"
+            >
+              {item.preview}
+            </p>
+          ))}
+          <Link
+            href="/community"
+            className="font-label-heading text-orange-11"
+          >
+            공개 다짐 더 보기
+          </Link>
+        </div>
+      )}
+      {bestNotes.length > 0 && (
+        <div className="border-line-line1 rounded-card p-card-pad gap-content-gap flex flex-col border bg-white">
+          <h2 className="font-body2-heading text-text-main">이번 주 우수</h2>
+          {bestNotes.map((item) => (
+            <Link
+              key={item.id}
+              href={`/community/notes/${item.id}`}
+              className="font-body2-normal text-gray-9"
+            >
+              {item.title}
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
   );
 };
 
@@ -73,6 +147,14 @@ export const OdokgongHome = () => {
           >
             {PROGRAM_BOARD.cta}
           </Link>
+          {SHELL_CAPABILITIES.declarations && (
+            <Link
+              href="/declarations/new"
+              className="min-h-control-lg px-button-wide-x rounded-button border-line-line2 font-label-heading text-gray-12 inline-flex items-center justify-center border bg-white"
+            >
+              자기선언 쓰기
+            </Link>
+          )}
         </div>
       </section>
 
@@ -104,6 +186,10 @@ export const OdokgongHome = () => {
       </section>
 
       <PortalPopularPosts />
+
+      {(SHELL_CAPABILITIES.declarations || SHELL_CAPABILITIES.bestNotes) && (
+        <CommunityHighlights />
+      )}
 
       <section
         aria-label={PROGRAM_BOARD.eyebrow}

@@ -2,9 +2,12 @@
 
 import { useState } from 'react';
 
+import { useRouter } from 'next/navigation';
+
 import { type CourseProduct } from '@/entities/course';
 import { Button, StatusBadge, showBottomToast } from '@/shared/components/ui';
 import { cn } from '@/shared/lib';
+import { isMvpHShellEnabled } from '@/shared/lib/mvp-h-slice';
 import { CheckCircle2, ShieldCheck } from 'lucide-react';
 
 import {
@@ -72,6 +75,7 @@ export const CourseTierSection = ({
   isAuthenticated,
   onRequireLogin,
 }: CourseTierSectionProps) => {
+  const router = useRouter();
   const {
     data: products,
     isLoading,
@@ -96,6 +100,12 @@ export const CourseTierSection = ({
   const handlePurchase = (product: CourseProduct) => {
     if (!isAuthenticated) {
       onRequireLogin();
+      return;
+    }
+    if (isMvpHShellEnabled()) {
+      router.push(
+        `/checkout?courseId=${courseId}&productId=${product.productId}`
+      );
       return;
     }
     setPendingProductId(product.productId);

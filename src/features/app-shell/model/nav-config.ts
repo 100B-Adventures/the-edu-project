@@ -156,6 +156,10 @@ export const buildShellNav = ({
           /^\/dashboard\/student\/program(\/.*)?$/
         )
       : null;
+  const levelItem =
+    track === 'FREE' && capabilities.levelTest
+      ? item('level', '58일', '/level', 'program', /^\/level\/?$/)
+      : null;
   const review = sliceOneEnabled ? REVIEW : null;
   const sidebar = [
     STUDENT_HOME,
@@ -170,7 +174,7 @@ export const buildShellNav = ({
   const roomTab = track === 'PAID' ? roomItem('교무실', roomId ?? 0) : room;
   const tabs = [
     STUDENT_HOME,
-    track === 'PAID' ? programItem : null,
+    track === 'PAID' ? programItem : levelItem,
     track === 'FREE' || !roomId ? null : roomTab,
     NOTES,
     review,

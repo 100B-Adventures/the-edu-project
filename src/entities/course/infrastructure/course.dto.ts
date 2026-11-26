@@ -64,9 +64,7 @@ const CoursePageDtoSchema = z.object({
  * 차시 연결 문제 정규화 helper
  *  백엔드 난이도/과목 직렬화 케이스(대/소문자·한글)를 도메인 enum으로 흡수.
  * ────────────────────────────────────────────────────*/
-const toProblemDifficulty = (
-  value: string
-): 'TOP' | 'HIGH' | 'MID' | 'LOW' => {
+const toProblemDifficulty = (value: string): 'TOP' | 'HIGH' | 'MID' | 'LOW' => {
   switch (value.toUpperCase()) {
     case 'TOP':
     case 'HIGHEST':
@@ -267,6 +265,8 @@ const CreateCourseOrderPayloadSchema = z.object({
   courseId: z.number(),
   productId: z.number(),
   studentId: z.number().nullable().optional(),
+  shareCode: z.string().max(64).optional(),
+  levelTestToken: z.string().max(64).optional(),
 });
 
 /* 체크포인트 제출 요청 (api-contract-v2 ⑨) */
