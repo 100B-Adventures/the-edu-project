@@ -10,6 +10,8 @@ const NotificationCategorySchema = z.enum([
   'NOTICE',
   'COLUMN_ARTICLE',
   'INQUIRY',
+  'PIN_ADDED',
+  'SOLUTION_COMMENT',
 ]);
 
 /**
@@ -33,6 +35,10 @@ const TargetMetadataSchema = z.object({
   articleId: z.string().optional(),
   inquiryId: z.string().optional(),
   title: z.string().optional(),
+  pageId: z.string().optional(),
+  nodeId: z.string().optional(),
+  pinId: z.string().optional(),
+  solutionNoteId: z.string().optional(),
 });
 
 /* ─────────────────────────────────────────────────────

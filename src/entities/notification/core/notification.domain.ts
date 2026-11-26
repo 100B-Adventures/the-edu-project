@@ -16,6 +16,8 @@ const CATEGORY_TO_KOREAN: Record<string, string> = {
   NOTICE: '공지',
   COLUMN_ARTICLE: '칼럼',
   INQUIRY: '문의',
+  PIN_ADDED: '노트 핀',
+  SOLUTION_COMMENT: '풀이 댓글',
 };
 
 const getCategoryKorean = (
@@ -44,6 +46,10 @@ const getTargetUrl = (
     articleId?: string;
     inquiryId?: string;
     title?: string;
+    pageId?: string;
+    nodeId?: string;
+    pinId?: string;
+    solutionNoteId?: string;
   } | null
 ): string | null => {
   if (!metadata) return null;
@@ -64,6 +70,14 @@ const getTargetUrl = (
       return `/community/column/${metadata.articleId}`;
     case 'INQUIRY':
       return `/inquiry/${metadata.inquiryId}`;
+    case 'PIN_ADDED':
+      return metadata.nodeId
+        ? `/dashboard/student/unit-notes/${metadata.nodeId}?page=${metadata.pageId ?? ''}&pin=${metadata.pinId ?? ''}`
+        : null;
+    case 'SOLUTION_COMMENT':
+      return metadata.solutionNoteId
+        ? `/dashboard/student/solution-notes/${metadata.solutionNoteId}`
+        : null;
     case 'NOTICE':
       return null;
     case 'SYSTEM':

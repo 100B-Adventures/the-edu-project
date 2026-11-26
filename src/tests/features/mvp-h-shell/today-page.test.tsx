@@ -46,7 +46,14 @@ vi.mock('@/shared/lib/mvp-h-slice', () => ({
 describe('MVP-H 학습 홈 N회독 개요 조회', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.get.mockResolvedValue(OVERVIEW);
+    mocks.get.mockImplementation((url: string) =>
+      url === '/student/schedule'
+        ? Promise.resolve({
+            blocks: [],
+            defaultScope: { kind: 'TODAY', until: '2026-11-26' },
+          })
+        : Promise.resolve(OVERVIEW)
+    );
   });
 
   it('T-DPQ-FE-1 StrictMode 재실행에도 overview 네트워크 호출은 한 번만 한다', async () => {
@@ -78,5 +85,24 @@ describe('MVP-H 학습 홈 N회독 개요 조회', () => {
     expect(screen.getByText('이번 주 시간표 화면')).toBeVisible();
     await user.click(screen.getByRole('tab', { name: '연간' }));
     expect(screen.getByText('연간 일정 화면')).toBeVisible();
+  });
+
+  it('T-SCH-5 서버 기본 범위가 WEEK면 이번 주 탭을 첫 화면으로 연다', async () => {
+    mocks.get.mockImplementation((url: string) =>
+      url === '/student/schedule'
+        ? Promise.resolve({
+            blocks: [],
+            defaultScope: { kind: 'WEEK', until: '2026-11-29' },
+          })
+        : Promise.resolve(OVERVIEW)
+    );
+
+    renderWithQuery(<TodayPage />);
+
+    expect(await screen.findByText('이번 주 시간표 화면')).toBeVisible();
+    expect(screen.getByRole('tab', { name: '이번 주' })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
   });
 });

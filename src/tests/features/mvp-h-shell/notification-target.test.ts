@@ -57,4 +57,20 @@ describe('T-SHL-N 알림 이동(day.noti)', () => {
     expect(parsed.categoryKorean).toBe('선생님 메시지');
     expect(parsed.targetMetadata?.messageId).toBe('33');
   });
+
+  it('T-NOTI-1 핀 알림은 학생의 해당 노트와 핀으로 이동한다', () => {
+    const parsed = domain.schema.parse({
+      id: 2,
+      message: '선생님이 노트에 핀을 남겼어요',
+      category: 'PIN_ADDED',
+      targetMetadata: { nodeId: '12', pageId: '9', pinId: '41' },
+      regDate: '2026-11-26T21:00:00',
+      read: false,
+    });
+
+    expect(parsed.targetUrl).toBe(
+      '/dashboard/student/unit-notes/12?page=9&pin=41'
+    );
+    expect(parsed.categoryKorean).toBe('노트 핀');
+  });
 });

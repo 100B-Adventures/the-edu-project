@@ -51,11 +51,34 @@ export const collaborationApi = {
     });
     return unwrapEnvelope(response, searchSchema);
   },
-  pins: async (pageId: number) => {
+  pins: async (pageId: number, scope: 'student' | 'teacher' = 'student') => {
     const response = await api.private.get(
-      `/student/unit-notes/pages/${pageId}/pins`
+      `/${scope}/unit-notes/pages/${pageId}/pins`
     );
     return unwrapEnvelope(response, z.array(pinSchema));
+  },
+  addPin: async (
+    pageId: number,
+    scope: 'student' | 'teacher',
+    input: { versionNo: number; x: number; y: number; body: string }
+  ) => {
+    const response = await api.private.post(
+      `/${scope}/unit-notes/pages/${pageId}/pins`,
+      input
+    );
+    return unwrapEnvelope(response, pinSchema);
+  },
+  updatePin: async (
+    pageId: number,
+    pinId: number,
+    scope: 'student' | 'teacher',
+    status: 'OPEN' | 'RESOLVED' | 'HIDDEN'
+  ) => {
+    const response = await api.private.patch(
+      `/${scope}/unit-notes/pages/${pageId}/pins/${pinId}`,
+      { status }
+    );
+    return unwrapEnvelope(response, pinSchema);
   },
   references: async (pageId: number) => {
     const response = await api.private.get(
@@ -82,11 +105,7 @@ export const collaborationApi = {
     api.private.delete(
       `/student/unit-notes/pages/${pageId}/references/${referenceId}`
     ),
-  saveVersion: async (
-    nodeId: number,
-    pageId: number,
-    handwriting: string
-  ) => {
+  saveVersion: async (nodeId: number, pageId: number, handwriting: string) => {
     const response = await api.private.post(
       `/student/unit-notes/${nodeId}/pages/${pageId}/versions`,
       { kind: 'REVISION', handwriting }

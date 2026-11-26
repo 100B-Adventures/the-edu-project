@@ -20,6 +20,8 @@ export type DockAction =
       panelId: string;
       width: number;
       height: number;
+      x?: number;
+      y?: number;
     }
   | { type: 'DOCK'; panelId: string }
   | { type: 'FULLSCREEN'; panelId: string }
@@ -76,6 +78,8 @@ export const dockReducer = (
           ...state.floating,
           [action.panelId]: {
             ...panel,
+            x: action.x ?? panel.x,
+            y: action.y ?? panel.y,
             width: clamp(action.width, 280, 960),
             height: clamp(action.height, 240, 900),
           },

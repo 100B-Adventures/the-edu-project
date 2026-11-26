@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { useReceivedMessagesQuery } from '@/features/app-shell/hooks/use-shell-queries';
+import { SHELL_CAPABILITIES } from '@/features/app-shell/model/shell-capabilities';
 import { WeeklyRetroCard } from '@/features/dashboard/components/student/weekly-retro-card';
 import {
   useStudentTodosQuery,
@@ -12,11 +13,11 @@ import { useDailyProblemsQuery } from '@/features/dashboard/hooks/use-wrong-answ
 import { useReviewOverviewQuery } from '@/features/review/hooks/use-review';
 import { WeekSchedule } from '@/features/schedule/components/week-schedule';
 import { YearSchedule } from '@/features/schedule/components/year-schedule';
-import { SHELL_CAPABILITIES } from '@/features/app-shell/model/shell-capabilities';
+import { useScheduleQuery } from '@/features/schedule/hooks/use-schedule';
 import { ActionCard } from '@/shared/components/action-card/action-card';
 import { ScreenState } from '@/shared/components/screen-state';
-import { StatChip } from '@/shared/components/ui/stat-chip';
 import { SegmentedTabs } from '@/shared/components/ui/segmented-tabs';
+import { StatChip } from '@/shared/components/ui/stat-chip';
 import { isMvpHSliceEnabled } from '@/shared/lib/mvp-h-slice';
 
 import { pickTodayAction } from '../model/pick-today-action';
@@ -34,6 +35,17 @@ export const TodayPage = () => {
   const updateTodo = useUpdateTodo();
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [tab, setTab] = useState<TodayTab>('today');
+  const defaultApplied = useRef(false);
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const defaultScopeQuery = useScheduleQuery(today, today);
+
+  useEffect(() => {
+    if (defaultApplied.current || !defaultScopeQuery.data) return;
+    defaultApplied.current = true;
+    const kind = defaultScopeQuery.data.defaultScope.kind;
+    setTab(kind === 'WEEK' ? 'week' : kind === 'GOAL' ? 'year' : 'today');
+  }, [defaultScopeQuery.data]);
 
   const action = useMemo(
     () =>

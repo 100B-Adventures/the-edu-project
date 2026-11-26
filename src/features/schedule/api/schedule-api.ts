@@ -24,6 +24,11 @@ const eventSchema = z.object({
   targetGrade: z.string().nullable(),
 });
 
+const defaultScopeSchema = z.object({
+  kind: z.enum(['TODAY', 'WEEK', 'GOAL']),
+  until: z.string(),
+});
+
 export type ScheduleBlock = z.infer<typeof blockSchema>;
 export type YearEvent = z.infer<typeof eventSchema>;
 export type BlockInput = Omit<
@@ -36,7 +41,26 @@ const getSchedule = async (from: string, to: string) => {
   const response = await api.private.get('/student/schedule', {
     params: { from, to },
   });
-  return unwrapEnvelope(response, z.object({ blocks: z.array(blockSchema) }));
+  return unwrapEnvelope(
+    response,
+    z.object({ blocks: z.array(blockSchema), defaultScope: defaultScopeSchema })
+  );
+};
+
+export type ActivitySessionInput = {
+  kind: 'SOLVE' | 'NOTE_WRITE' | 'REVIEW';
+  startedAt: string;
+  endedAt: string;
+  refType: 'SOLUTION_NOTE' | 'UNIT_NOTE_PAGE' | 'WRONG_ANSWER';
+  refId: number;
+};
+
+const createActivitySession = async (input: ActivitySessionInput) => {
+  const response = await api.private.post('/student/activity-sessions', input);
+  return unwrapEnvelope(
+    response,
+    z.object({ id: z.number(), actualMinutes: z.number() })
+  );
 };
 
 const createBlock = async (input: BlockInput) => {
@@ -84,4 +108,5 @@ export const scheduleApi = {
   createYearEvent,
   updateYearEvent,
   deleteYearEvent,
+  createActivitySession,
 };
