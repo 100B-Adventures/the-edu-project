@@ -132,7 +132,9 @@ const DashboardTeacher: FC<{ initialMemberName?: string }> = () => {
       room.enrollmentStatus === 'CLOSED' &&
       all.findIndex((candidate) => candidate.id === room.id) === index
   );
-  const actionableRoomCount = rooms.filter((room) => room.todoCount > 0).length;
+  // 문구의 "위 N 수업"은 바로 아래 보이는 카드 분모다. todoCount가 0인
+  // 정상 수업도 카드로 보이므로 손볼 것 유무로 세면 카드 1개를 0개라 말한다.
+  const visibleRoomCount = activeRooms.length;
   const [openMenuRoomId, setOpenMenuRoomId] = useState<number | null>(null);
   const [showClosedRooms, setShowClosedRooms] = useState(false);
   // 승인 디자인 v22 `roomCard` 3324 `스터디룸 이름 수정`
@@ -164,7 +166,7 @@ const DashboardTeacher: FC<{ initialMemberName?: string }> = () => {
               <b className="text-gray-12 tabular-nums">
                 {rooms.reduce((sum, room) => sum + room.todoCount, 0)}건
               </b>
-              이 위 {formatRoomCount(actionableRoomCount)} 수업에 몰려 있습니다.
+              이 위 {formatRoomCount(visibleRoomCount)} 수업에 몰려 있습니다.
             </span>
           )}
           {rooms.length > 0 && (

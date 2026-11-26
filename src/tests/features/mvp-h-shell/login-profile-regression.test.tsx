@@ -84,4 +84,18 @@ describe('MVP-H 로그인·상단 프로필 회귀', () => {
 
     expect(screen.getByText('1,200P')).toBeVisible();
   });
+
+  it('REG-H-PROFILE-04 선생님 상단 바의 이번 주 사용 한도를 보존한다', () => {
+    render(<AppTopBar role="ROLE_TEACHER" />);
+
+    expect(screen.getByText('이번 주 사용')).toBeVisible();
+    expect(
+      screen.getByText((_, element) =>
+        Boolean(
+          element?.tagName === 'B' &&
+            element.textContent?.replace(/\s+/g, ' ').trim() === '0분 / 30분'
+        )
+      )
+    ).toBeVisible();
+  });
 });

@@ -202,6 +202,9 @@ describe('MVP-G 죽은 버튼 회귀', () => {
 
     render(<DashboardTeacher initialMemberName="한지원" />);
 
+    expect(screen.getByTestId('teacher-rooms-summary')).toHaveTextContent(
+      '오늘 학생 화면에 넣어줄 것 0건이 위 한 수업에 몰려 있습니다.'
+    );
     expect(screen.getByRole('link', { name: '스터디룸 열기' })).toHaveAttribute(
       'href',
       '/study-rooms/41/note'

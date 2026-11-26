@@ -45,6 +45,20 @@ const AppTopBarPointChip = ({ enabled }: { enabled: boolean }) => {
   );
 };
 
+/** 운영 선생님 헤더가 제공하던 주간 사용 한도. 새 셸에서도 같은 정보를 잃지 않는다. */
+const AppTopBarWeeklyUsage = ({ enabled }: { enabled: boolean }) => {
+  if (!enabled) return null;
+
+  return (
+    <span className="text-gray-9 text-ui-compact hidden items-center gap-1 font-bold sm:inline-flex">
+      이번 주 사용
+      <b className="text-gray-12 text-ui-choice tabular-nums">
+        0분 <em className="text-gray-9 font-bold not-italic">/ 30분</em>
+      </b>
+    </span>
+  );
+};
+
 /** 상단 바. 데스크톱 64·모바일 56. 왼쪽 뒤로/로고, 가운데 제목, 오른쪽 종·아바타. */
 export const AppTopBar = ({ role, back = false }: AppTopBarProps) => {
   const pathname = usePathname();
@@ -86,6 +100,7 @@ export const AppTopBar = ({ role, back = false }: AppTopBarProps) => {
         </h1>
       </div>
       <div className="gap-content-gap flex items-center">
+        <AppTopBarWeeklyUsage enabled={role === 'ROLE_TEACHER'} />
         <AppTopBarPointChip enabled={role === 'ROLE_TEACHER'} />
         <NotificationPopover />
         <DropdownMenu>
