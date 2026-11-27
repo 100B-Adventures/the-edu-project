@@ -110,6 +110,7 @@ const CourseOrderCreateResultSchema = z.object({
   orderId: z.number(),
   orderKey: z.string(),
   amount: z.number(),
+  currency: z.literal('KRW'),
   courseTitle: z.string(),
   // 백엔드 CourseOrderCreateResponse 는 planType 을 주고 planLabel 은 없다.
   planType: PlanTypeSchema.optional(),
