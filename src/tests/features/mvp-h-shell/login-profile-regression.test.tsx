@@ -1,5 +1,6 @@
 import { AppTopBar } from '@/features/app-shell/components/app-top-bar';
 import { OdokgongLogin } from '@/features/auth/components/odokgong-login';
+import { Header } from '@/layout/header';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -39,6 +40,18 @@ vi.mock('@/features/profile-image/hooks/use-profile-image', () => ({
 
 vi.mock('@/features/point/hooks/use-point', () => ({
   useMyPointWalletQuery: () => ({ data: { balance: 1200 } }),
+}));
+
+vi.mock('@/store', () => ({
+  useMemberStore: (selector: (state: { member: object }) => unknown) =>
+    selector({
+      member: {
+        id: 7,
+        name: '기존 학생',
+        role: 'ROLE_MEMBER',
+        email: 'legacy@example.com',
+      },
+    }),
 }));
 
 describe('MVP-H 로그인·상단 프로필 회귀', () => {
@@ -97,5 +110,27 @@ describe('MVP-H 로그인·상단 프로필 회귀', () => {
         )
       )
     ).toBeVisible();
+  });
+
+  it('REG-H-HEADER-OFF-01 셸 OFF 헤더는 기존 탐색·프로필 세 항목·카카오 의견 링크를 실제 렌더한다', async () => {
+    vi.stubEnv('NEXT_PUBLIC_MVPH_SHELL', 'off');
+    const user = userEvent.setup();
+    render(<Header />);
+
+    for (const label of ['오픈챌린지', '코스', '대표 멘토', '상담소', '게시판']) {
+      expect(screen.getAllByRole('link', { name: label }).length).toBeGreaterThan(0);
+    }
+
+    await user.click(screen.getByRole('button', { name: '프로필 사진' }));
+    expect(screen.getByRole('menuitem', { name: '마이페이지' })).toBeVisible();
+    expect(screen.getByRole('menuitem', { name: '환경설정' })).toBeVisible();
+    expect(screen.getByRole('menuitem', { name: '로그아웃' })).toBeVisible();
+    await user.keyboard('{Escape}');
+
+    await user.click(screen.getByRole('button', { name: '햄버거 메뉴' }));
+    const feedback = screen.getByRole('link', { name: '피드백 소중한 의견 보내기' });
+    expect(feedback).toBeVisible();
+    expect(feedback).toHaveAttribute('target', '_blank');
+    expect(feedback.getAttribute('href')).toContain('kakao');
   });
 });

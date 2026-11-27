@@ -286,6 +286,7 @@ const responseFor = (url: URL, method: string) => {
       orderId: 21,
       orderKey: 'dedu_order_fixture',
       amount: 280000,
+      currency: 'KRW',
       courseTitle: '오독공 58일 수학',
       planType: 'MANAGED',
       pgProvider: 'TOSS',
@@ -297,7 +298,8 @@ const responseFor = (url: URL, method: string) => {
       orderId: 21,
       enrollmentId: 5,
       status: 'PAID',
-      refundGuaranteed: true,
+      refundEligibilityOpened: true,
+      nextStep: 'TEACHER_CHECK',
     };
   }
   return {};
@@ -368,7 +370,44 @@ const screens = [
   ['teacher-best', '/dashboard/teacher/best'],
 ] as const;
 
+const slice3OnlyRoutes = [
+  '/community',
+  '/community/notes/1',
+  '/checkout?courseId=1&productId=12',
+  '/community/notes/new',
+  '/dashboard/student/program',
+  '/dashboard/student/program/days/18',
+  '/dashboard/teacher/best',
+  '/declarations/new',
+  '/pay-done?paymentKey=pay_test&orderId=dedu_order_fixture&amount=280000',
+  '/level',
+  '/library',
+  '/library/3/chapters/1',
+] as const;
+
 test.describe('MVP-H 조각 3 실렌더·실클릭', () => {
+  test('셸 OFF는 조각 3에서 추가한 12개 주소를 실제 404로 닫고 기존 주소를 보존한다', async ({
+    page,
+  }) => {
+    test.skip(phase !== 'off', '플래그 OFF 전용 라우팅 회귀 시험이다.');
+    await mockApi(page);
+
+    for (const target of slice3OnlyRoutes) {
+      const response = await page.goto(target);
+      expect(response?.status(), target).toBe(404);
+    }
+
+    for (const target of ['/', '/courses/1', '/consult']) {
+      const response = await page.goto(target);
+      expect(response?.status(), target).toBe(200);
+      await expect(page.locator('body')).toBeVisible();
+    }
+
+    process.stdout.write(
+      `SLICE3_OFF_ROUTES new404=${slice3OnlyRoutes.length} legacy200=3\n`
+    );
+  });
+
   test('12개 공개 화면·숨긴 레벨 화면과 기존 홈을 플래그 전후 세 폭에서 캡처한다', async ({
     page,
   }) => {

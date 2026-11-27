@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { decodeJwt } from 'jose';
 
+import { isMvpHShellEnabled } from '@/shared/lib/mvp-h-slice';
+
 // CORS
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -31,6 +33,21 @@ const PUBLIC_PATHS = new Set<string>([
   '/api/v1/member/info', // 자체 인증 처리 (쿠키 없으면 204 반환)
   '/api/drawing-session-ingest', // dev: iPad 필기 캡처 (route는 production에서 404)
 ]);
+
+const MVP_H_SHELL_ONLY_PATHS = [
+  /^\/community(?:\/|$)/,
+  /^\/checkout$/,
+  /^\/dashboard\/student\/program(?:\/|$)/,
+  /^\/dashboard\/teacher\/best$/,
+  /^\/declarations\/new$/,
+  /^\/level$/,
+  /^\/library(?:\/|$)/,
+  /^\/pay-done$/,
+] as const;
+
+function isMvpHShellOnlyPath(pathname: string) {
+  return MVP_H_SHELL_ONLY_PATHS.some((pattern) => pattern.test(pathname));
+}
 
 // next.js 인프라 내부로의 요청인지 판단
 function isInfraRequest(req: NextRequest) {
@@ -112,6 +129,12 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // 셸이 꺼진 운영에서는 인증 리다이렉트나 React 스트리밍보다 먼저 신규 주소를 닫는다.
+  // 페이지의 notFound()만으로는 스트리밍 헤더가 먼저 확정돼 HTTP 200이 될 수 있다.
+  if (!isMvpHShellEnabled() && isMvpHShellOnlyPath(pathname)) {
+    return new NextResponse(null, { status: 404 });
+  }
+
   // 공개 경로 통과
   if (PUBLIC_PATHS.has(pathname)) {
     return NextResponse.next();
@@ -136,6 +159,12 @@ export const config = {
     '/',
     '/api/:path*',
     '/dashboard/:path*',
+    '/community/:path*',
+    '/checkout',
+    '/declarations/new',
+    '/level',
+    '/library/:path*',
+    '/pay-done',
     '/study-rooms/:path*',
     '/mypage',
     '/admin/:path*',
