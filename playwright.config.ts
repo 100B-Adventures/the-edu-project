@@ -153,6 +153,7 @@ export default defineConfig({
     : {
         command: `npm run dev -- --hostname 127.0.0.1 --port ${e2eWebPort}`,
         url: localE2eURL,
+        timeout: 600_000,
         // 다른 worktree의 앱을 제품 서버로 오인하지 않는다. 포트가 겹치면 즉시 실패시키고
         // 호출자가 E2E_WEB_PORT로 격리 포트를 명시한다.
         reuseExistingServer: false,

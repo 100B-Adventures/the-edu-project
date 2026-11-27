@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 
+import { resolveRoleDestination } from '@/features/auth/lib/redirect';
 import AuthBanner from '@/shared/components/auth/banner';
-import { PRIVATE } from '@/shared/constants';
+import { isMvpHShellEnabled } from '@/shared/lib/mvp-h-slice';
 import { fetchMemberRole } from '@/shared/lib/server';
 
 export default async function AuthLayout({
@@ -13,8 +14,8 @@ export default async function AuthLayout({
 
   if (session.status === 'authenticated') {
     if (session.role === 'ROLE_MEMBER') redirect('/select-role');
-    else if (session.role === 'ROLE_STUDENT') redirect('/learning');
-    else redirect(PRIVATE.DASHBOARD.INDEX);
+    else
+      redirect(resolveRoleDestination(session.role, isMvpHShellEnabled()));
   }
 
   return (
