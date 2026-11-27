@@ -18,6 +18,15 @@ const shellOnlyPaths = [
   '/library/3/chapters/1',
 ] as const;
 
+const legacyPaths = [
+  '/community/column',
+  '/community/column/1',
+  '/community/column/1/opengraph-image',
+  '/dashboard',
+  '/learning',
+  '/login',
+] as const;
+
 describe('MVP-H 셸 비활성 미들웨어', () => {
   afterEach(() => vi.unstubAllEnvs());
 
@@ -48,5 +57,18 @@ describe('MVP-H 셸 비활성 미들웨어', () => {
     );
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toContain('/login?from=%2Fdashboard');
+  });
+
+  it('F-OFF-ROUTE-4 셸을 꺼도 base에 있던 기존 6주소는 404로 막지 않는다', () => {
+    vi.stubEnv('NEXT_PUBLIC_MVPH_SHELL', 'false');
+
+    const blocked = legacyPaths.flatMap((path) => {
+      const response = middleware(
+        new NextRequest(`http://localhost:3000${path}`)
+      );
+      return response.status === 404 ? [{ path, status: response.status }] : [];
+    });
+
+    expect(blocked).toEqual([]);
   });
 });

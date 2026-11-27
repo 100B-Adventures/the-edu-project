@@ -385,6 +385,15 @@ const slice3OnlyRoutes = [
   '/library/3/chapters/1',
 ] as const;
 
+const legacyRoutes = [
+  '/community/column',
+  '/community/column/1',
+  '/community/column/1/opengraph-image',
+  '/dashboard',
+  '/learning',
+  '/login',
+] as const;
+
 test.describe('MVP-H 조각 3 실렌더·실클릭', () => {
   test('셸 OFF는 조각 3에서 추가한 12개 주소를 실제 404로 닫고 기존 주소를 보존한다', async ({
     page,
@@ -397,6 +406,14 @@ test.describe('MVP-H 조각 3 실렌더·실클릭', () => {
       expect(response?.status(), target).toBe(404);
     }
 
+    const legacyStatuses: Array<{ target: string; status: number }> = [];
+    for (const target of legacyRoutes) {
+      const response = await page.goto(target);
+      const status = response?.status() ?? 0;
+      expect(status, target).not.toBe(404);
+      legacyStatuses.push({ target, status });
+    }
+
     for (const target of ['/', '/courses/1', '/consult']) {
       const response = await page.goto(target);
       expect(response?.status(), target).toBe(200);
@@ -404,7 +421,7 @@ test.describe('MVP-H 조각 3 실렌더·실클릭', () => {
     }
 
     process.stdout.write(
-      `SLICE3_OFF_ROUTES new404=${slice3OnlyRoutes.length} legacy200=3\n`
+      `SLICE3_OFF_ROUTES new404=${slice3OnlyRoutes.length} legacyNot404=${legacyRoutes.length} legacyStatuses=${legacyStatuses.map(({ target, status }) => `${target}:${status}`).join(',')} legacy200=3\n`
     );
   });
 

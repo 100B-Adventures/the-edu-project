@@ -35,7 +35,8 @@ const PUBLIC_PATHS = new Set<string>([
 ]);
 
 const MVP_H_SHELL_ONLY_PATHS = [
-  /^\/community(?:\/|$)/,
+  /^\/community$/,
+  /^\/community\/notes\/[^/]+$/,
   /^\/checkout$/,
   /^\/dashboard\/student\/program(?:\/|$)/,
   /^\/dashboard\/teacher\/best$/,
@@ -159,7 +160,8 @@ export const config = {
     '/',
     '/api/:path*',
     '/dashboard/:path*',
-    '/community/:path*',
+    '/community',
+    '/community/notes/:path*',
     '/checkout',
     '/declarations/new',
     '/level',
