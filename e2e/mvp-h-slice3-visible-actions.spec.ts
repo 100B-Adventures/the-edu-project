@@ -414,15 +414,17 @@ test.describe('MVP-H 조각 3 실렌더·실클릭', () => {
     await page.goto('/checkout?courseId=1&productId=12&ref=FRIEND58');
     await expect(page.getByText(/친구 코드가 입력됐어요/)).toBeVisible();
     const order = page.getByRole('button', { name: '주문 내용 확인하기' });
-    expect((await order.boundingBox())?.height ?? 0).toBeGreaterThan(0);
+    const orderBox = await order.boundingBox();
+    expect(orderBox?.height ?? 0).toBeGreaterThan(0);
     await order.click();
-    await expect(
-      page.getByRole('button', { name: '토스 시험 결제로 이동' })
-    ).toBeVisible();
+    const toss = page.getByRole('button', { name: '토스 시험 결제로 이동' });
+    await expect(toss).toBeVisible();
+    const tossBox = await toss.boundingBox();
 
     await page.goto('/dashboard/student/program');
     const coupon = page.getByRole('button', { name: '버퍼 쿠폰으로 열기' });
-    expect((await coupon.boundingBox())?.width ?? 0).toBeGreaterThan(0);
+    const couponBox = await coupon.boundingBox();
+    expect(couponBox?.width ?? 0).toBeGreaterThan(0);
     await coupon.click();
     await expect(page.getByText('현재 18일차')).toBeVisible();
 
@@ -431,17 +433,33 @@ test.describe('MVP-H 조각 3 실렌더·실클릭', () => {
       .getByLabel('자기선언 내용')
       .fill('오늘 한 문제를 끝까지 풀게요.');
     await page.getByRole('checkbox').check();
-    await page.getByRole('button', { name: '비공개로 저장하기' }).click();
+    const save = page.getByRole('button', { name: '비공개로 저장하기' });
+    const saveBox = await save.boundingBox();
+    await save.click();
     await expect(page.getByText('공개 전 가림 미리보기')).toBeVisible();
 
     await page.goto('/community');
-    await page.getByRole('link', { name: '노트 보기' }).click();
+    const noteLink = page.getByRole('link', { name: '노트 보기' });
+    const noteLinkBox = await noteLink.boundingBox();
+    await noteLink.click();
     await expect(page).toHaveURL(/\/community\/notes\/1$/, {
       timeout: 30_000,
     });
-    await expect(
-      page.getByRole('button', { name: '응원 보내기' })
-    ).toBeVisible();
+    const cheer = page.getByRole('button', { name: '응원 보내기' });
+    await expect(cheer).toBeVisible();
+    const cheerBox = await cheer.boundingBox();
+    process.stdout.write(
+      `SLICE3_CLICK ${JSON.stringify({
+        order: orderBox,
+        toss: tossBox,
+        coupon: couponBox,
+        save: saveBox,
+        noteLink: noteLinkBox,
+        cheer: cheerBox,
+        declarationPreview: 1,
+        communityPath: new URL(page.url()).pathname,
+      })}\n`
+    );
   });
 
   test('학생 로그인 착지와 1024 주간표 7열을 플래그 계약대로 직접 조작한다', async ({
@@ -457,7 +475,9 @@ test.describe('MVP-H 조각 3 실렌더·실클릭', () => {
     // 로그인 API는 브라우저에서 mock하지만 private layout은 서버에서 쿠키를 읽는다.
     // 제출 직전에 세션 쿠키를 주입해 실제 client redirect와 서버 경계를 함께 지난다.
     await setAuthCookie(page);
-    await page.getByTestId('login-submit-button').click();
+    const loginSubmit = page.getByTestId('login-submit-button');
+    const loginBox = await loginSubmit.boundingBox();
+    await loginSubmit.click();
     await expect(page).toHaveURL(
       phase === 'on' ? /\/dashboard\/student$/ : /\/learning$/,
       { timeout: 30_000 }
@@ -474,15 +494,31 @@ test.describe('MVP-H 조각 3 실렌더·실클릭', () => {
         count: cards.length,
         fits: Boolean(last && last.right <= bounds.right + 1),
         overflow: viewport.scrollWidth > viewport.clientWidth,
+        lastRight: last?.right ?? 0,
+        viewportRight: bounds.right,
+        scrollWidth: viewport.scrollWidth,
+        clientWidth: viewport.clientWidth,
       };
     });
-    expect(layout).toEqual({ count: 7, fits: true, overflow: false });
+    expect(layout).toMatchObject({ count: 7, fits: true, overflow: false });
 
     const previous = page.getByRole('button', { name: '이전 주' });
-    expect((await previous.boundingBox())?.height ?? 0).toBeGreaterThan(0);
+    const previousBox = await previous.boundingBox();
+    expect(previousBox?.height ?? 0).toBeGreaterThan(0);
     const range = page.locator('section[aria-label="이번 주 시간표"] strong');
     const before = await range.textContent();
     await previous.click();
     await expect(range).not.toHaveText(before ?? '');
+    const after = await range.textContent();
+    process.stdout.write(
+      `SLICE3_LOGIN_WEEK ${JSON.stringify({
+        login: loginBox,
+        landingPath: new URL(page.url()).pathname,
+        layout,
+        previous: previousBox,
+        before,
+        after,
+      })}\n`
+    );
   });
 });
