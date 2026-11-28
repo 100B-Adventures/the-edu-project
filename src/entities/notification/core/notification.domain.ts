@@ -1,4 +1,4 @@
-import { getShellNoticeTarget } from '@/entities/notification/core/notification-target';
+import { getNotificationTarget } from '@/entities/notification/core/notification-target';
 import { dto } from '@/entities/notification/infrastructure';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
@@ -29,61 +29,6 @@ const getCategoryKorean = (
   return (
     CATEGORY_TO_KOREAN[category as keyof typeof CATEGORY_TO_KOREAN] || '기타'
   );
-};
-
-/* ─────────────────────────────────────────────────────
- * category -> URL 변환 매핑
- * ────────────────────────────────────────────────────*/
-const getTargetUrl = (
-  category: string,
-  metadata: {
-    qnaId?: string;
-    studyRoomId?: string;
-    teachingNoteId?: string;
-    noticeId?: string;
-    homeworkId?: string;
-    messageId?: string;
-    articleId?: string;
-    inquiryId?: string;
-    title?: string;
-    pageId?: string;
-    nodeId?: string;
-    pinId?: string;
-    solutionNoteId?: string;
-  } | null
-): string | null => {
-  if (!metadata) return null;
-
-  switch (category) {
-    case 'TEACHING_NOTE':
-      return `/study-rooms/${metadata.studyRoomId}/note/${metadata.teachingNoteId}`;
-    case 'STUDY_ROOM':
-      return (
-        getShellNoticeTarget(category, metadata) ??
-        `/study-rooms/${metadata.studyRoomId}/note`
-      );
-    case 'QNA':
-      return `/study-rooms/${metadata.studyRoomId}/qna/${metadata.qnaId}`;
-    case 'HOMEWORK':
-      return `/study-rooms/${metadata.studyRoomId}/homework/${metadata.homeworkId}`;
-    case 'COLUMN_ARTICLE':
-      return `/community/column/${metadata.articleId}`;
-    case 'INQUIRY':
-      return `/inquiry/${metadata.inquiryId}`;
-    case 'PIN_ADDED':
-      return metadata.nodeId
-        ? `/dashboard/student/unit-notes/${metadata.nodeId}?page=${metadata.pageId ?? ''}&pin=${metadata.pinId ?? ''}`
-        : null;
-    case 'SOLUTION_COMMENT':
-      return metadata.solutionNoteId
-        ? `/dashboard/student/solution-notes/${metadata.solutionNoteId}`
-        : null;
-    case 'NOTICE':
-      return null;
-    case 'SYSTEM':
-    default:
-      return null;
-  }
 };
 
 /* ─────────────────────────────────────────────────────
@@ -120,7 +65,10 @@ const NotificationSchema = NotificationShape.transform((notification) => ({
     notification.category,
     notification.targetMetadata
   ),
-  targetUrl: getTargetUrl(notification.category, notification.targetMetadata),
+  targetUrl: getNotificationTarget(
+    notification.category,
+    notification.targetMetadata
+  ),
   relativeTime: formatDistanceToNow(notification.regDate, {
     addSuffix: true,
     locale: ko,

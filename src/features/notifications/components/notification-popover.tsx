@@ -46,10 +46,7 @@ export function NotificationPopover() {
   const markAsRead = useMarkAsRead();
   const deleteNotifications = useDeleteNotifications();
 
-  const shouldHideHomework =
-    !session?.role ||
-    session.role === 'ROLE_STUDENT' ||
-    session.role === 'ROLE_PARENT';
+  const shouldHideHomework = !session?.role || session.role === 'ROLE_PARENT';
   const notifications = (data ?? []).filter(
     (notification) =>
       !shouldHideHomework || notification.category !== 'HOMEWORK'
@@ -90,9 +87,7 @@ export function NotificationPopover() {
   };
 
   // 개별 삭제
-  const handleDelete = (id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-
+  const handleDelete = (id: number) => {
     deleteNotifications.mutate([id]);
   };
 
@@ -176,30 +171,36 @@ export function NotificationPopover() {
                 <li
                   key={item.id}
                   className={cn(
-                    'flex cursor-pointer items-start justify-between border-b px-6 py-4 transition-colors',
+                    'flex items-stretch justify-between border-b transition-colors',
                     'hover:bg-gray-100'
                   )}
-                  onClick={() => handleNotificationClick(item)}
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-text-sub2 text-xs font-semibold">
-                      {item.categoryKorean}
-                    </p>
-                    <p
-                      className={`mt-1 line-clamp-2 text-sm leading-relaxed hover:underline ${item.isRead ? 'font-body2-normal text-text-sub2' : 'font-body2-heading'}`}
-                    >
-                      {item.message}
-                    </p>
-                  </div>
-                  <div className="ml-3 flex flex-col items-end justify-between gap-1">
-                    <span className="text-xs text-gray-400">
+                  <button
+                    type="button"
+                    className="focus-ring flex min-w-0 flex-1 cursor-pointer items-start justify-between px-6 py-4 text-left"
+                    data-testid={`notification-item-${item.id}`}
+                    onClick={() => handleNotificationClick(item)}
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="text-text-sub2 block text-xs font-semibold">
+                        {item.categoryKorean}
+                      </span>
+                      <span
+                        className={`mt-1 line-clamp-2 block text-sm leading-relaxed hover:underline ${item.isRead ? 'font-body2-normal text-text-sub2' : 'font-body2-heading'}`}
+                      >
+                        {item.message}
+                      </span>
+                    </span>
+                    <span className="ml-3 shrink-0 text-xs text-gray-400">
                       {item.relativeTime}
                     </span>
+                  </button>
+                  <div className="flex items-center pr-4">
                     <button
                       type="button"
-                      className="text-text-sub2 hover:text-text-main cursor-pointer p-1"
+                      className="text-text-sub2 hover:text-text-main flex size-11 cursor-pointer items-center justify-center"
                       aria-label="알림 삭제"
-                      onClick={(event) => handleDelete(item.id, event)}
+                      onClick={() => handleDelete(item.id)}
                     >
                       <Trash2Icon size={20} />
                     </button>

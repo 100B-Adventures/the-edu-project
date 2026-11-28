@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 import { useResumeQuery } from '@/features/app-shell/hooks/use-shell-queries';
 import { SHELL_CAPABILITIES } from '@/features/app-shell/model/shell-capabilities';
+import { PublicEntryCards } from '@/features/home/components/odokgong-home/public-entry-cards';
 import { PortalPopularPosts } from '@/features/home/components/portal-popular-posts';
 import {
   DEFAULT_HERO_VARIANT,
@@ -118,8 +119,9 @@ const CommunityHighlights = () => {
 };
 
 /**
- * 오독공 홈(FDD §5.2). 위에서 아래: 불안 문안 → 노트 검색 칸 + 칩 → 58일 큰 판 → 칼럼 →
- * 공부 흐름 네 칸. 후기·자기선언·베스트·영상·광고 칸은 근거 데이터가 생기면 그린다(능력 상수 false).
+ * 오독공 홈(FDD §5.2). 위에서 아래: 불안 문안 → 노트 검색 칸 + 칩 →
+ * 선생님 영상·칼럼 → 58일 큰 판과 공개 진입 → 커뮤니티 → 공부 흐름 네 칸.
+ * 후기 영역은 실제 동의 후기 0건 계약에 따라 그리지 않는다.
  */
 export const OdokgongHome = () => {
   const { member } = useSession();
@@ -187,27 +189,11 @@ export const OdokgongHome = () => {
 
       <PortalPopularPosts />
 
+      <PublicEntryCards />
+
       {(SHELL_CAPABILITIES.declarations || SHELL_CAPABILITIES.bestNotes) && (
         <CommunityHighlights />
       )}
-
-      <section
-        aria-label={PROGRAM_BOARD.eyebrow}
-        className="rounded-section bg-gray-12 p-card-pad gap-block-gap flex flex-col text-white"
-      >
-        <p className="font-caption-heading text-orange-5">
-          {PROGRAM_BOARD.eyebrow}
-        </p>
-        <h2 className="font-headline2-heading whitespace-pre-line">
-          {PROGRAM_BOARD.title}
-        </h2>
-        <Link
-          href={PUBLIC.COURSE.LIST}
-          className="min-h-touch-min font-body2-heading text-orange-5 inline-flex items-center"
-        >
-          {PROGRAM_BOARD.cta}
-        </Link>
-      </section>
 
       <section
         aria-label="공부 흐름"

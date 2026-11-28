@@ -1,5 +1,8 @@
 import { domain } from '@/entities/notification/core';
-import { getShellNoticeTarget } from '@/entities/notification/core/notification-target';
+import {
+  getNotificationTarget,
+  getShellNoticeTarget,
+} from '@/entities/notification/core/notification-target';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('T-SHL-N 알림 이동(day.noti)', () => {
@@ -72,5 +75,59 @@ describe('T-SHL-N 알림 이동(day.noti)', () => {
       '/dashboard/student/unit-notes/12?page=9&pin=41'
     );
     expect(parsed.categoryKorean).toBe('노트 핀');
+  });
+
+  it('T-NOTI-1 질문·과제는 방과 대상 id가 있으면 정확한 상세로 간다', () => {
+    expect(
+      getNotificationTarget('QNA', { studyRoomId: '7', qnaId: '11' })
+    ).toBe('/study-rooms/7/qna/11');
+    expect(
+      getNotificationTarget('HOMEWORK', {
+        studyRoomId: '7',
+        homeworkId: '13',
+      })
+    ).toBe('/study-rooms/7/homework/13');
+  });
+
+  it('producer metadata가 일부 빠지면 카테고리 목록으로 안전하게 폴백한다', () => {
+    expect(
+      getNotificationTarget('TEACHING_NOTE', { teachingNoteId: '19' })
+    ).toBe('/mypage?tab=profile');
+    expect(getNotificationTarget('QNA', { studyRoomId: '7' })).toBe(
+      '/study-rooms/7/qna'
+    );
+    expect(getNotificationTarget('HOMEWORK', null)).toBe('/mypage?tab=profile');
+    expect(getNotificationTarget('INQUIRY', null)).toBe('/mypage');
+    expect(getNotificationTarget('PIN_ADDED', {})).toBe(
+      '/dashboard/student/unit-notes'
+    );
+  });
+
+  it('비어 있거나 특수문자가 있는 id로 죽은 URL을 만들지 않는다', () => {
+    const fallback = getNotificationTarget('TEACHING_NOTE', {
+      studyRoomId: '7',
+      teachingNoteId: 'undefined',
+    });
+    const encoded = getNotificationTarget('QNA', {
+      studyRoomId: 'room/7',
+      qnaId: 'question?11',
+    });
+
+    expect(fallback).toBe('/study-rooms/7/note');
+    expect(fallback).not.toContain('/undefined');
+    expect(encoded).toBe('/study-rooms/room%2F7/qna/question%3F11');
+  });
+
+  it('핀 query는 존재하는 값만 인코딩해 전달한다', () => {
+    expect(
+      getNotificationTarget('PIN_ADDED', {
+        nodeId: '12',
+        pageId: '9/10',
+        pinId: '41?x',
+      })
+    ).toBe('/dashboard/student/unit-notes/12?page=9%2F10&pin=41%3Fx');
+    expect(getNotificationTarget('PIN_ADDED', { nodeId: '12' })).toBe(
+      '/dashboard/student/unit-notes/12'
+    );
   });
 });

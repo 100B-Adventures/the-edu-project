@@ -18,8 +18,8 @@ const NotificationCategorySchema = z.enum([
  * targetMetadata: 카테고리별 메타데이터
  * - QNA: qnaId, studyRoomId
  * - STUDY_ROOM: studyRoomId + noticeId 또는 messageId
- * - TEACHING_NOTE: teachingNoteId
- * - HOMEWORK: homeworkId
+ * - TEACHING_NOTE: teachingNoteId, studyRoomId (legacy payload는 studyRoomId 생략 가능)
+ * - HOMEWORK: homeworkId, studyRoomId
  * - COLUMN_ARTICLE: articleId, title
  * - INQUIRY: inquiryId, title
  * TODO
