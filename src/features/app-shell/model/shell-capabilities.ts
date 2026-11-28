@@ -7,8 +7,8 @@ export const SHELL_CAPABILITIES = {
   schedule: true,
   pins: true,
   program: true,
-  // Exact S04~S07 token/problem/media contract is not complete in slice 3 v1.0.0.
-  levelTest: false,
+  // S5/S6 backend 13 + frontend 9 source checkpoint. Stage activation is separate.
+  levelTest: true,
   ebookLibrary: true,
   bestNotes: true,
   declarations: true,

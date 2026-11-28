@@ -115,20 +115,32 @@ export const Header = () => {
               trackGnbLogoClick(session?.role ?? null);
             }}
           >
-            <Image
-              src={'/logo.svg'}
-              alt="디에듀 로고"
-              width={79}
-              height={22}
-              className="shrink-0 cursor-pointer"
-            />
+            {shellOn ? (
+              <span
+                aria-label="오독공"
+                className="font-headline2-heading inline-flex items-baseline"
+              >
+                <span className="text-orange-9">오독</span>
+                <span className="text-white">공</span>
+              </span>
+            ) : (
+              <Image
+                src={'/logo.svg'}
+                alt="디에듀 로고"
+                width={79}
+                height={22}
+                className="shrink-0 cursor-pointer"
+              />
+            )}
           </Link>
-          <Image
-            src={'/img_header_beta.svg'}
-            alt="BETA"
-            width={44}
-            height={20}
-          />
+          {!shellOn && (
+            <Image
+              src={'/img_header_beta.svg'}
+              alt="BETA"
+              width={44}
+              height={20}
+            />
+          )}
 
           {showDesktopDiscoveryLinks && shellOn && (
             <nav
@@ -436,7 +448,7 @@ export const Header = () => {
                 'max-desktop:hidden'
               )}
             >
-              디에듀 시작하기
+              {shellOn ? '오독공 시작하기' : '디에듀 시작하기'}
             </Link>
           </div>
         )}

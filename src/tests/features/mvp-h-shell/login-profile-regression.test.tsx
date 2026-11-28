@@ -58,6 +58,7 @@ describe('MVP-H 로그인·상단 프로필 회귀', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('REG-H-LOGIN-01 기존 로그인 폼의 전체 폭·왼쪽 정렬을 보존하고 브랜드를 중복하지 않는다', () => {
@@ -117,8 +118,16 @@ describe('MVP-H 로그인·상단 프로필 회귀', () => {
     const user = userEvent.setup();
     render(<Header />);
 
-    for (const label of ['오픈챌린지', '코스', '대표 멘토', '상담소', '게시판']) {
-      expect(screen.getAllByRole('link', { name: label }).length).toBeGreaterThan(0);
+    for (const label of [
+      '오픈챌린지',
+      '코스',
+      '대표 멘토',
+      '상담소',
+      '게시판',
+    ]) {
+      expect(
+        screen.getAllByRole('link', { name: label }).length
+      ).toBeGreaterThan(0);
     }
 
     await user.click(screen.getByRole('button', { name: '프로필 사진' }));
@@ -128,9 +137,33 @@ describe('MVP-H 로그인·상단 프로필 회귀', () => {
     await user.keyboard('{Escape}');
 
     await user.click(screen.getByRole('button', { name: '햄버거 메뉴' }));
-    const feedback = screen.getByRole('link', { name: '피드백 소중한 의견 보내기' });
+    const feedback = screen.getByRole('link', {
+      name: '피드백 소중한 의견 보내기',
+    });
     expect(feedback).toBeVisible();
     expect(feedback).toHaveAttribute('target', '_blank');
     expect(feedback.getAttribute('href')).toContain('kakao');
+  });
+
+  it('REG-H-HEADER-ON-01 셸 ON 헤더는 오독공 브랜드와 승인 공개 진입만 연결한다', () => {
+    vi.stubEnv('NEXT_PUBLIC_MVPH_SHELL', 'on');
+    render(<Header />);
+
+    expect(screen.getByRole('link', { name: '오독공' })).toHaveAttribute(
+      'href',
+      '/'
+    );
+    expect(screen.queryByAltText('디에듀 로고')).not.toBeInTheDocument();
+    expect(screen.queryByAltText('BETA')).not.toBeInTheDocument();
+    expect(
+      screen
+        .getAllByRole('link', { name: '58일 프로그램' })
+        .every((entry) => entry.getAttribute('href') === '/courses')
+    ).toBe(true);
+    expect(
+      screen
+        .getAllByRole('link', { name: '58일 레벨 테스트' })
+        .every((entry) => entry.getAttribute('href') === '/level')
+    ).toBe(true);
   });
 });
