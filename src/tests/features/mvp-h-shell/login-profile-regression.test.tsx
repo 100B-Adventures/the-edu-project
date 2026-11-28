@@ -161,9 +161,7 @@ describe('MVP-H 로그인·상단 프로필 회귀', () => {
         .every((entry) => entry.getAttribute('href') === '/courses')
     ).toBe(true);
     expect(
-      screen
-        .getAllByRole('link', { name: '58일 레벨 테스트' })
-        .every((entry) => entry.getAttribute('href') === '/level')
-    ).toBe(true);
+      screen.queryByRole('link', { name: '58일 레벨 테스트' })
+    ).not.toBeInTheDocument();
   });
 });

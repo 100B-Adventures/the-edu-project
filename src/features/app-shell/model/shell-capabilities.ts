@@ -7,8 +7,8 @@ export const SHELL_CAPABILITIES = {
   schedule: true,
   pins: true,
   program: true,
-  // S5/S6 backend 13 + frontend 9 source checkpoint. Stage activation is separate.
-  levelTest: true,
+  // Level source candidate is a separate tree. Keep the entry closed until it lands.
+  levelTest: false,
   ebookLibrary: true,
   bestNotes: true,
   declarations: true,
